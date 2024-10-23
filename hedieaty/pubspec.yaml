@@ -79,6 +79,11 @@ flutter:
     - family: gvibes
       fonts:
         - asset: assets/fonts/GreatVibes-Regular.ttf
+    - family: arima
+      fonts:
+        - asset: assets/fonts/Arima-Bold.ttf
+          weight: 700
+      
      
   #
   # For details regarding fonts from package dependencies,
