@@ -39,7 +39,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
             ),
             SizedBox(height: 50),
             SpinKitSpinningLines(
-              color: Color(0xFFD3D3D3),
+              color: Colors.amber,
               size: 50.0,
             ),
             SizedBox(height: 20), 

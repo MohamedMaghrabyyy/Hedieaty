@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'title_widget.dart';
+import 'package:hedieaty/event_list.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,27 +15,27 @@ class _HomePageState extends State<HomePage> {
       'name': 'Alice',
       'profilePic': 'assets/images/profile_icon.png',
       'phone': '+123456789',
-      'events': 2
+      'events': 2,
     },
     {
       'name': 'Bob',
       'profilePic': 'assets/images/profile_icon.png',
       'phone': '+987654321',
-      'events': 0
+      'events': 0,
     },
     {
       'name': 'Charlie',
       'profilePic': 'assets/images/profile_icon.png',
       'phone': '+456123789',
-      'events': 1
-    },
+      'events': 1,
+    }
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 80, // Adjusting the height with padding
+        toolbarHeight: 80,
         backgroundColor: const Color.fromARGB(255, 58, 2, 80),
         title: const TitleWidget(),
         actions: [
@@ -53,7 +54,7 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
               Color.fromARGB(255, 58, 2, 80),
@@ -83,11 +84,13 @@ class _HomePageState extends State<HomePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber,
                       foregroundColor: Colors.black,
-                      minimumSize: const Size.fromHeight(48),
+                      minimumSize: const Size.fromHeight(48), // Same height for both buttons
                     ),
                     icon: const Icon(Icons.person_add),
                     label: const Text("Add Friend"),
-                    onPressed: () {},
+                    onPressed: () {
+                      // Add friend action
+                    },
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -96,7 +99,7 @@ class _HomePageState extends State<HomePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber,
                       foregroundColor: Colors.black,
-                      minimumSize: const Size.fromHeight(48),
+                      minimumSize: const Size.fromHeight(48), // Same height for both buttons
                     ),
                     icon: const Icon(Icons.add_circle_outline),
                     label: const Text(
@@ -166,8 +169,13 @@ class _HomePageState extends State<HomePage> {
                             )
                           : null,
                       onTap: () {
-                        Navigator.pushNamed(context, '/friendGiftList',
-                            arguments: friend['name']);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                EventListPage(friendName: friend['name']),
+                          ),
+                        );
                       },
                     ),
                   );
