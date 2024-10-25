@@ -3,8 +3,8 @@ import 'package:hedieaty/loading_screen.dart';
 import 'package:hedieaty/sign_up.dart';
 import 'package:hedieaty/login.dart';
 import 'package:hedieaty/home_page.dart';
-import 'package:hedieaty/event_list.dart'; // Import the EventListPage
-import 'package:hedieaty/gift_list.dart'; // Import the GiftListPage
+import 'package:hedieaty/event_list.dart';
+import 'package:hedieaty/gift_list.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -14,8 +14,8 @@ void main() {
       '/login': (context) => const LoginPage(),
       '/signup': (context) => const SignUpPage(),
       '/home': (context) => HomePage(),
-      '/eventListPage': (context) => EventListPage(), // Route for EventListPage
-      '/giftListPage': (context) => GiftListPage(), // New route for GiftListPage
+      '/eventListPage': (context) => EventListPage(),
+      '/giftListPage': (context) => GiftListPage(),
     },
   ));
 }

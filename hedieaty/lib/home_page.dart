@@ -84,12 +84,11 @@ class _HomePageState extends State<HomePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber,
                       foregroundColor: Colors.black,
-                      minimumSize: const Size.fromHeight(48), // Same height for both buttons
+                      minimumSize: const Size.fromHeight(48),
                     ),
                     icon: const Icon(Icons.person_add),
                     label: const Text("Add Friend"),
                     onPressed: () {
-                      // Add friend action
                     },
                   ),
                 ),
@@ -99,7 +98,7 @@ class _HomePageState extends State<HomePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.amber,
                       foregroundColor: Colors.black,
-                      minimumSize: const Size.fromHeight(48), // Same height for both buttons
+                      minimumSize: const Size.fromHeight(48),
                     ),
                     icon: const Icon(Icons.add_circle_outline),
                     label: const Text(

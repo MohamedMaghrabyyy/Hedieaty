@@ -35,11 +35,9 @@ class _EventListPageState extends State<EventListPage> {
   String sortBy = 'name';
 
   void addEvent() {
-    // Implementation to add a new event
   }
 
   void editEvent(int index) {
-    // Implementation to edit the selected event
   }
 
   void deleteEvent(int index) {
@@ -64,7 +62,7 @@ class _EventListPageState extends State<EventListPage> {
           GestureDetector(
             onTap: () {
               Navigator.pushNamed(
-                  context, '/profile'); // Navigate to profile page
+                  context, '/profile');
             },
             child: const Padding(
               padding: EdgeInsets.only(right: 16.0),

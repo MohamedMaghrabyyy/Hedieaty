@@ -37,11 +37,9 @@ class _GiftListPageState extends State<GiftListPage> {
   String sortBy = 'name';
 
   void addGift() {
-    // Implementation to add a new gift
   }
 
   void editGift(int index) {
-    // Implementation to edit the selected gift
   }
 
   void deleteGift(int index) {
