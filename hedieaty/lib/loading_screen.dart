@@ -29,7 +29,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
             TitleWidget(),
             SizedBox(height: 20),
             Text(
-              "Don't need gifts, I am the gift yeah.",
+              "Gifting made easy!",
               style: TextStyle(
                 fontFamily: 'arima',
                 fontSize: 18.0,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hedieaty/gift_details.dart';
 
 class GiftListPage extends StatefulWidget {
   final String? eventName;
@@ -36,10 +37,32 @@ class _GiftListPageState extends State<GiftListPage> {
 
   String sortBy = 'name';
 
-  void addGift() {
+  void addGift() async {
+    final newGift = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GiftDetailsPage(),
+      ),
+    );
+    if (newGift != null) {
+      setState(() {
+        gifts.add(newGift);
+      });
+    }
   }
 
-  void editGift(int index) {
+  void editGift(int index) async {
+    final updatedGift = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GiftDetailsPage(existingGift: gifts[index]),
+      ),
+    );
+    if (updatedGift != null) {
+      setState(() {
+        gifts[index] = updatedGift;
+      });
+    }
   }
 
   void deleteGift(int index) {
@@ -136,6 +159,15 @@ class _GiftListPageState extends State<GiftListPage> {
                           ),
                         ],
                       ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                GiftDetailsPage(existingGift: gift),
+                          ),
+                        );
+                      },
                     ),
                   );
                 },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'title_widget.dart';
 import 'package:hedieaty/event_list.dart';
+import 'package:hedieaty/profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -41,7 +42,7 @@ class _HomePageState extends State<HomePage> {
         actions: [
           GestureDetector(
             onTap: () {
-              Navigator.pushNamed(context, '/profile');
+              Navigator.pushNamed(context, '/profilePage');
             },
             child: const Padding(
               padding: EdgeInsets.only(right: 16.0),
@@ -89,6 +90,7 @@ class _HomePageState extends State<HomePage> {
                     icon: const Icon(Icons.person_add),
                     label: const Text("Add Friend"),
                     onPressed: () {
+                      // Logic to add a new friend
                     },
                   ),
                 ),
@@ -124,7 +126,9 @@ class _HomePageState extends State<HomePage> {
                   borderSide: BorderSide.none,
                 ),
               ),
-              onChanged: (value) {},
+              onChanged: (value) {
+                // Logic for search functionality
+              },
             ),
             const SizedBox(height: 20),
             Expanded(
@@ -156,23 +160,24 @@ class _HomePageState extends State<HomePage> {
                       ),
                       trailing: friend['events'] > 0
                           ? CircleAvatar(
-                              radius: 12,
-                              backgroundColor: Colors.amber,
-                              child: Text(
-                                friend['events'].toString(),
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            )
+                        radius: 12,
+                        backgroundColor: Colors.amber,
+                        child: Text(
+                          friend['events'].toString(),
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
                           : null,
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                EventListPage(friendName: friend['name']),
+                            builder: (context) => EventListPage(
+                              friendName: friend['name'],
+                            ),
                           ),
                         );
                       },
