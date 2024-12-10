@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/title_widget.dart';
+import 'package:hedieaty/firebase_auth_service.dart'; // Import the FirebaseAuthService
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,6 +14,25 @@ class _LoginPageState extends State<LoginPage> {
   final GlobalKey<FormState> loginKey = GlobalKey();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final FirebaseAuthService _authService = FirebaseAuthService(); // Instance of FirebaseAuthService
+
+  // Login method
+  void _login() async {
+    if (loginKey.currentState?.validate() ?? false) {
+      try {
+        User? user = await _authService.signIn(
+          emailController.text,
+          passwordController.text,
+        );
+        if (user != null) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } catch (e) {
+        // Handle login error (show an alert or error message)
+        print("Error: $e");
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,11 +111,7 @@ class _LoginPageState extends State<LoginPage> {
                         backgroundColor: Colors.amber,
                         foregroundColor: Colors.black,
                       ),
-                      onPressed: () {
-                        if (loginKey.currentState?.validate() ?? false) {
-                          Navigator.pushReplacementNamed(context, '/home');
-                        }
-                      },
+                      onPressed: _login, // Call the login method
                       child: const Text('Login', style: TextStyle(fontSize: 16),),
                     ),
                     const SizedBox(height: 10),

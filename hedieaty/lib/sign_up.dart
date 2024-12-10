@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/title_widget.dart';
+import 'package:hedieaty/firebase_auth_service.dart'; // Import the FirebaseAuthService
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -14,6 +16,25 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final FirebaseAuthService _authService = FirebaseAuthService(); // Instance of FirebaseAuthService
+
+  // Sign up method
+  void _signUp() async {
+    if (signUpKey.currentState?.validate() ?? false) {
+      try {
+        User? user = await _authService.signUp(
+          emailController.text,
+          passwordController.text,
+        );
+        if (user != null) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } catch (e) {
+        // Handle signup error (show an alert or error message)
+        print("Error: $e");
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,11 +156,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         backgroundColor: Colors.amber,
                         foregroundColor: Colors.black,
                       ),
-                      onPressed: () {
-                        if (signUpKey.currentState?.validate() ?? false) {
-                          Navigator.pushReplacementNamed(context, '/home');
-                        }
-                      },
+                      onPressed: _signUp, // Call the signup method
                       child: const Text('Sign Up', style: TextStyle(fontSize: 16),),
                     ),
                     const SizedBox(height: 10),
