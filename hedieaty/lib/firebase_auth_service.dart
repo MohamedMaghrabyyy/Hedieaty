@@ -1,37 +1,41 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // FirebaseAuth
 
 class FirebaseAuthService {
-  // Initialize an instance of FirebaseAuth
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Sign in
-  Future<User?> signIn(String email, String password) async {
-    try {
-      UserCredential userCredential = await _firebaseAuth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return userCredential.user;
-    } catch (e) {
-      throw e;
-    }
-  }
-
-  // Sign up
+  // Sign up method with email and password only
   Future<User?> signUp(String email, String password) async {
     try {
-      UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+      // Create user in Firebase Authentication
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Return the user object
+      return userCredential.user;
+    } catch (e) {
+      print("Sign up error: $e");
+      return null;
+    }
+  }
+
+  // Login method
+  Future<User?> signIn(String email, String password) async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
       return userCredential.user;
     } catch (e) {
-      throw e;
+      print("Login error: $e");
+      return null;
     }
   }
 
-  // Sign out
+  // Log out method
   Future<void> signOut() async {
-    await _firebaseAuth.signOut();
+    await _auth.signOut();
   }
 }

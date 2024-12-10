@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/title_widget.dart';
-import 'package:hedieaty/firebase_auth_service.dart'; // Import the FirebaseAuthService
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import the FirebaseAuth User class
+import 'package:hedieaty/firebase_auth_service.dart';
+import 'package:hedieaty/firestore_service.dart';
+import 'package:hedieaty/user_model.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -11,26 +12,44 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  final GlobalKey<FormState> signUpKey = GlobalKey();
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
+  final GlobalKey<FormState> signupKey = GlobalKey();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController(); // Phone number controller
+
   final FirebaseAuthService _authService = FirebaseAuthService(); // Instance of FirebaseAuthService
+  final FirestoreService _firestoreService = FirestoreService(); // Instance of FirestoreService
 
   // Sign up method
   void _signUp() async {
-    if (signUpKey.currentState?.validate() ?? false) {
+    if (signupKey.currentState?.validate() ?? false) {
       try {
+        // Sign up the user with FirebaseAuth
         User? user = await _authService.signUp(
           emailController.text,
           passwordController.text,
         );
+
         if (user != null) {
+          // Create a UserModel object to store user details (email, name, and phone number)
+          UserModel userModel = UserModel(
+            email: emailController.text,
+            name: nameController.text,
+            phoneNumber: phoneController.text,
+          );
+
+          // After the user is created, save user data to Firestore
+          await _firestoreService.saveUserData(
+            user.uid, // Firebase user UID
+            userModel, // UserModel to store in Firestore
+          );
+
+          // Navigate to home page after successful sign-up and data saving
           Navigator.pushReplacementNamed(context, '/home');
         }
       } catch (e) {
-        // Handle signup error (show an alert or error message)
+        // Handle sign-up error (show an alert or error message)
         print("Error: $e");
       }
     }
@@ -44,7 +63,6 @@ class _SignUpPageState extends State<SignUpPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const TitleWidget(),
             const SizedBox(height: 60),
             Container(
               width: 280,
@@ -55,14 +73,14 @@ class _SignUpPageState extends State<SignUpPage> {
                 borderRadius: BorderRadius.circular(10.0),
               ),
               child: Form(
-                key: signUpKey,
+                key: signupKey,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      "Register",
+                      "Sign Up",
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 28,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
@@ -71,12 +89,10 @@ class _SignUpPageState extends State<SignUpPage> {
                     TextFormField(
                       controller: nameController,
                       decoration: const InputDecoration(
-                        labelText: 'Enter your name...',
+                        labelText: 'Enter your Name...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(12.0)),
                         ),
-                        hintText: 'Enter your name',
-                        hintStyle: TextStyle(color: Colors.grey),
                         filled: true,
                         fillColor: Colors.white,
                       ),
@@ -89,35 +105,12 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                     const SizedBox(height: 16.0),
                     TextFormField(
-                      controller: phoneController,
-                      decoration: const InputDecoration(
-                        labelText: 'Enter your phone number...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12.0)),
-                        ),
-                        hintText: 'Enter your phone number',
-                        hintStyle: TextStyle(color: Colors.grey),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your phone number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16.0),
-                    TextFormField(
                       controller: emailController,
                       decoration: const InputDecoration(
                         labelText: 'Enter your Email...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(12.0)),
                         ),
-                        hintText: 'Enter your email',
-                        hintStyle: TextStyle(color: Colors.grey),
                         filled: true,
                         fillColor: Colors.white,
                       ),
@@ -138,7 +131,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           borderRadius: BorderRadius.all(Radius.circular(12.0)),
                         ),
                         hintText: 'Enter your password',
-                        hintStyle: TextStyle(color: Colors.grey),
+                        hintStyle: TextStyle(color: Color.fromARGB(255, 200, 200, 200)),
                         filled: true,
                         fillColor: Colors.white,
                       ),
@@ -150,14 +143,33 @@ class _SignUpPageState extends State<SignUpPage> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16.0),
+                    TextFormField(
+                      controller: phoneController,
+                      decoration: const InputDecoration(
+                        labelText: 'Enter your Phone Number...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your phone number';
+                        }
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: 20.0),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber,
                         foregroundColor: Colors.black,
                       ),
-                      onPressed: _signUp, // Call the signup method
-                      child: const Text('Sign Up', style: TextStyle(fontSize: 16),),
+                      onPressed: _signUp, // Call the sign-up method
+                      child: const Text('Sign Up', style: TextStyle(fontSize: 16)),
                     ),
                     const SizedBox(height: 10),
                     GestureDetector(

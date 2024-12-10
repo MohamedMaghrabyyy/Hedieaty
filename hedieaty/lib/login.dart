@@ -15,6 +15,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final FirebaseAuthService _authService = FirebaseAuthService(); // Instance of FirebaseAuthService
+  String _errorMessage = ''; // To hold any error message
 
   // Login method
   void _login() async {
@@ -28,8 +29,17 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.pushReplacementNamed(context, '/home');
         }
       } catch (e) {
-        // Handle login error (show an alert or error message)
-        print("Error: $e");
+        // If login fails, update the error message
+        setState(() {
+          _errorMessage = 'Invalid email or password. Please try again.';
+        });
+        // Optionally, display a Snackbar for instant feedback
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login failed. Please check your credentials.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -105,14 +115,23 @@ class _LoginPageState extends State<LoginPage> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 20.0),
+                    const SizedBox(height: 16.0),
+                    // Display the error message if there's one
+                    if (_errorMessage.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Text(
+                          _errorMessage,
+                          style: const TextStyle(color: Colors.red, fontSize: 14),
+                        ),
+                      ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber,
                         foregroundColor: Colors.black,
                       ),
                       onPressed: _login, // Call the login method
-                      child: const Text('Login', style: TextStyle(fontSize: 16),),
+                      child: const Text('Login', style: TextStyle(fontSize: 16)),
                     ),
                     const SizedBox(height: 10),
                     GestureDetector(
