@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:hedieaty/services/firestore_service.dart';  // FirestoreService
-import 'package:hedieaty/models/user_model.dart';        // UserModel
+import 'package:hedieaty/services/firestore_service.dart';
+import 'package:hedieaty/models/user_model.dart';
 
 class SignUpPage extends StatefulWidget {
   @override
@@ -16,7 +16,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
   bool _isLoading = false;
 
-  // Method to handle sign-up process
   Future<void> _signUp() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -24,31 +23,32 @@ class _SignUpPageState extends State<SignUpPage> {
       });
 
       try {
-        // Get user input from the form fields
+        // Get user input
         String email = _emailController.text.trim();
         String password = _passwordController.text.trim();
         String name = _nameController.text.trim();
 
-        // Create a new user with Firebase Authentication
+        // Sign up with Firebase Authentication
         UserCredential userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(email: email, password: password);
 
-        // Create a UserModel instance
+        // Extract UID from Firebase Auth
+        String uid = userCredential.user!.uid;
+
+        // Create a new UserModel with UID
         UserModel newUser = UserModel(
-          name: name,
+          uid: uid,
           email: email,
-          // Add any additional user fields here
+          name: name,
         );
 
-        // Save the user data in Firestore (Firestore will generate the document ID)
+        // Save user data in Firestore
         await FirestoreService().saveUserData(newUser);
 
-        // After sign-up, navigate to the home screen or wherever needed
+        // Navigate to the home screen
         Navigator.pushReplacementNamed(context, '/home');
       } catch (e) {
-        // Handle sign-up errors and display appropriate error messages
         String errorMessage = 'Sign-up failed. Please try again.';
-
         if (e is FirebaseAuthException) {
           if (e.code == 'weak-password') {
             errorMessage = 'Password is too weak. Please choose a stronger password.';
@@ -56,15 +56,9 @@ class _SignUpPageState extends State<SignUpPage> {
             errorMessage = 'An account already exists for this email.';
           } else if (e.code == 'invalid-email') {
             errorMessage = 'The email address is badly formatted.';
-          } else if (e.code == 'operation-not-allowed') {
-            errorMessage = 'Email/password accounts are not enabled.';
           }
         }
-
-        // Show the error in a snack bar
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
       } finally {
         setState(() {
           _isLoading = false;
@@ -88,7 +82,7 @@ class _SignUpPageState extends State<SignUpPage> {
               // Name input
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(labelText: 'Name'),
+                decoration: const InputDecoration(labelText: 'Name'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your name';
@@ -99,7 +93,7 @@ class _SignUpPageState extends State<SignUpPage> {
               // Email input
               TextFormField(
                 controller: _emailController,
-                decoration: InputDecoration(labelText: 'Email'),
+                decoration: const InputDecoration(labelText: 'Email'),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -114,7 +108,7 @@ class _SignUpPageState extends State<SignUpPage> {
               // Password input
               TextFormField(
                 controller: _passwordController,
-                decoration: InputDecoration(labelText: 'Password'),
+                decoration: const InputDecoration(labelText: 'Password'),
                 obscureText: true,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -126,10 +120,10 @@ class _SignUpPageState extends State<SignUpPage> {
                   return null;
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               // Sign up button
               _isLoading
-                  ? CircularProgressIndicator()
+                  ? const CircularProgressIndicator()
                   : ElevatedButton(
                 onPressed: _signUp,
                 child: const Text('Sign Up'),

@@ -1,31 +1,24 @@
-import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore
-import 'package:hedieaty/models/user_model.dart'; // Import the UserModel class
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hedieaty/models/user_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Method to store user data in Firestore with auto-generated document ID
+  // Save user data in Firestore with UID as document ID
   Future<void> saveUserData(UserModel userModel) async {
     try {
-      // Save the user data to Firestore under the 'users' collection with an auto-generated ID
-      await _firestore.collection('users').add(userModel.toMap());
+      await _firestore.collection('users').doc(userModel.uid).set(userModel.toMap());
     } catch (e) {
       print("Error saving user data to Firestore: $e");
     }
   }
 
-  // Method to get user data by userId (to be used when looking up users)
-  Future<UserModel?> getUserData(String userId) async {
+  // Get user data by UID
+  Future<UserModel?> getUserData(String uid) async {
     try {
-      // You would need some way to find the user document by userId if needed
-      // This could be a custom field (e.g., email, or another unique identifier)
-      QuerySnapshot snapshot = await _firestore
-          .collection('users')
-          .where('email', isEqualTo: userId) // or any other field you're using
-          .get();
-
-      if (snapshot.docs.isNotEmpty) {
-        return UserModel.fromMap(snapshot.docs.first.data() as Map<String, dynamic>);
+      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        return UserModel.fromMap(doc.data() as Map<String, dynamic>);
       } else {
         print("User not found.");
         return null;

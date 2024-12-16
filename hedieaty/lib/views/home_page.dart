@@ -1,9 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';  // Import Firestore
+import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore
 import 'package:flutter/material.dart';
 import 'package:hedieaty/widgets/title_widget.dart';
 import 'package:hedieaty/views/event_list.dart';
-import 'package:hedieaty/views/profile_page.dart';
-import 'package:hedieaty/models//user_model.dart';  // Import UserModel
+import 'package:hedieaty/models/user_model.dart'; // UserModel
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -126,55 +125,13 @@ class _HomePageState extends State<HomePage> {
                     return const Center(child: Text('No users found.'));
                   }
 
-                  // Use ListView.builder to create list items
+                  // Fetch users and build the list
                   return ListView.builder(
                     itemCount: snapshot.data!.docs.length,
                     itemBuilder: (context, index) {
                       var doc = snapshot.data!.docs[index];
                       var user = UserModel.fromMap(doc.data() as Map<String, dynamic>);
-
-                      return Card(
-                        color: Colors.grey[200],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15.0),
-                        ),
-                        margin: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: Colors.white,
-                            backgroundImage: AssetImage('assets/images/profile_icon.png'), // Default image
-                          ),
-                          title: Text(
-                            user.name,
-                            style: const TextStyle(
-                              color: Color.fromARGB(255, 58, 2, 80),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Text(user.email),
-                          trailing: CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Colors.amber,
-                            child: const Text(
-                              '1',  // Default number of events
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EventListPage(
-                                  friendName: user.name,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
+                      return _buildUserCard(user);
                     },
                   );
                 },
@@ -182,6 +139,49 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildUserCard(UserModel user) {
+    return Card(
+      color: Colors.grey[200],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15.0),
+      ),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ListTile(
+        leading: const CircleAvatar(
+          backgroundColor: Colors.white,
+          backgroundImage: AssetImage('assets/images/profile_icon.png'), // Default image
+        ),
+        title: Text(
+          user.name,
+          style: const TextStyle(
+            color: Color.fromARGB(255, 58, 2, 80),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(user.email),
+        trailing: CircleAvatar(
+          radius: 12,
+          backgroundColor: Colors.amber,
+          child: const Text(
+            '1', // Placeholder for number of events; update if dynamic fetching is needed
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EventListPage(friendName: user.name),
+            ),
+          );
+        },
       ),
     );
   }
