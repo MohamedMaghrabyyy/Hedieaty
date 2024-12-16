@@ -15,10 +15,23 @@ class EventListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Event List'),
         backgroundColor: const Color.fromARGB(255, 58, 2, 80),
         iconTheme: const IconThemeData(color: Colors.white), // Set icon color to white
         titleTextStyle: const TextStyle(color: Colors.white, fontSize: 25), // Set text color to white
+        title: FutureBuilder<String>(
+          future: _fetchUserName(userId), // Fetch the user's name
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            } else if (snapshot.hasError) {
+              return Text('Error: ${snapshot.error}');
+            } else if (snapshot.hasData) {
+              return Text("${snapshot.data}'s Events List"); // Display user's name
+            } else {
+              return const Text("Event List");
+            }
+          },
+        ),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -169,6 +182,16 @@ class EventListPage extends StatelessWidget {
         foregroundColor: Colors.black,
       ),
     );
+  }
+
+  // Method to fetch the user's name from Firestore
+  Future<String> _fetchUserName(String userId) async {
+    try {
+      final userDoc = await FirestoreService().getUserById(userId); // Get user by userId
+      return userDoc?['name'] ?? 'User'; // Return the user's name or 'User' if not found
+    } catch (e) {
+      return 'Error fetching user';
+    }
   }
 
   Stream<List<EventModel>> _fetchUserEvents(String userId) {

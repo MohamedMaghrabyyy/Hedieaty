@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hedieaty/views/profile_details.dart';
 import 'package:hedieaty/services/firebase_auth_service.dart'; // Import the FirebaseAuthService
 
 class ProfilePage extends StatelessWidget {
@@ -32,7 +33,11 @@ class ProfilePage extends StatelessWidget {
               title: const Text('Update Personal Information'),
               trailing: const Icon(Icons.edit),
               onTap: () {
-                // Add navigation to edit profile info
+                // Navigate to the ProfileDetailsPage
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfileDetailsPage()),
+                );
               },
             ),
             ListTile(

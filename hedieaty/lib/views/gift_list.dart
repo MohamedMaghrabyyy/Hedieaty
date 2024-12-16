@@ -4,8 +4,6 @@ import 'package:hedieaty/services/firestore_service.dart';
 import 'package:hedieaty/views/edit_gift.dart';
 import 'package:hedieaty/views/create_gift.dart';
 
-import 'package:intl/intl.dart'; // For formatting date
-
 class GiftListPage extends StatelessWidget {
   final String? eventId; // Event ID to filter gifts
 
@@ -15,9 +13,25 @@ class GiftListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gifts for Event', style: TextStyle(color: Colors.white, fontSize: 20),),
+        title: FutureBuilder<String>(
+          future: _fetchEventName(eventId), // Fetch event name based on eventId
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Text('Loading...'); // Show loading text until event name is fetched
+            }
+            if (snapshot.hasError) {
+              return Text('Error: ${snapshot.error}');
+            }
+            if (snapshot.hasData) {
+              return Text('${snapshot.data}\'s Gifts'); // Display event name
+            }
+            return const Text('Event Not Found');
+          },
+        ),
         backgroundColor: const Color.fromARGB(255, 58, 2, 80),
         iconTheme: const IconThemeData(color: Colors.white),
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 25), // Set text color to white
+
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -162,5 +176,11 @@ class GiftListPage extends StatelessWidget {
 
   Stream<List<GiftModel>> _fetchGiftsForEvent(String? eventId) {
     return FirestoreService().streamGiftsForEvent(eventId); // Fetch gifts for a specific event
+  }
+
+  // Fetch event name by eventId
+  Future<String> _fetchEventName(String? eventId) async {
+    final event = await FirestoreService().getEventById(eventId); // FirestoreService to fetch event by id
+    return event?.name ?? 'Event'; // Return event name or 'Event' if not found
   }
 }

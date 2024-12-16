@@ -2,9 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hedieaty/models/user_model.dart';
 import 'package:hedieaty/models/event_model.dart';
 import 'package:hedieaty/models/gift_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance; // Initialize _auth here
 
   // Save user data in Firestore with UID as document ID
   Future<void> saveUserData(UserModel userModel) async {
@@ -31,6 +33,43 @@ class FirestoreService {
     }
   }
 
+  // Method to get user by ID
+  Future<Map<String, dynamic>?> getUserById(String userId) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      return userDoc.exists ? userDoc.data() : null;
+    } catch (e) {
+      throw Exception('Error fetching user data: $e');
+    }
+  }
+
+  // Fetch current user data (userId should be passed)
+  Future<Map<String, dynamic>> getCurrentUserData() async {
+    final userId = _auth.currentUser?.uid; // Get the current logged-in user's ID
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    return userDoc.data()!;
+  }
+
+  // Update user profile (both name and email)
+  Future<void> updateUserProfile(String name, String email) async {
+    final userId = _auth.currentUser?.uid; // Get the current logged-in user's ID
+
+    await _firestore.collection('users').doc(userId).update({
+      'name': name,
+      'email': email,
+    });
+  }
+
+  // Change password
+  Future<void> changePassword(String newPassword) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await user.updatePassword(newPassword); // Update password with Firebase Auth
+    } else {
+      throw Exception('No user logged in');
+    }
+  }
+
   // Create a new event
   Future<void> createEvent(EventModel event) async {
     try {
@@ -46,7 +85,6 @@ class FirestoreService {
       print('Error creating event: $e');
     }
   }
-
 
   // Update an existing event by ID
   Future<void> updateEvent(String? eventId, EventModel updatedEvent) async {
@@ -86,7 +124,7 @@ class FirestoreService {
     }
   }
 
-// Stream to fetch events for a specific user
+  // Stream to fetch events for a specific user
   Stream<List<EventModel>> streamEventsForUser(String userId) {
     return _firestore
         .collection('events')
@@ -96,6 +134,7 @@ class FirestoreService {
         .map((doc) => EventModel.fromMap(doc.data(), doc.id))
         .toList());
   }
+
   // Fetch a specific event by its ID
   Future<EventModel?> getEventById(String? eventId) async {
     try {
@@ -103,14 +142,16 @@ class FirestoreService {
       if (docSnapshot.exists) {
         return EventModel.fromMap(docSnapshot.data() as Map<String, dynamic>, docSnapshot.id);
       }
-    } catch (e) {
+    } catch (e)      {
       print('Error fetching event by ID: $e');
     }
     return null;
   }
+
   Future<void> addGift(GiftModel gift) async {
     await FirebaseFirestore.instance.collection('gifts').add(gift.toMap());
   }
+
   Stream<List<GiftModel>> streamGiftsForEvent(String? eventId) {
     return FirebaseFirestore.instance
         .collection('gifts')
@@ -120,6 +161,7 @@ class FirestoreService {
       return GiftModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
     }).toList());
   }
+
   Future<GiftModel?> getGiftById(String giftId) async {
     final doc = await FirebaseFirestore.instance.collection('gifts').doc(giftId).get();
     if (doc.exists) {
@@ -127,14 +169,12 @@ class FirestoreService {
     }
     return null;
   }
+
   Future<void> updateGift(String giftId, Map<String, dynamic> updatedData) async {
     await FirebaseFirestore.instance.collection('gifts').doc(giftId).update(updatedData);
   }
+
   Future<void> deleteGift(String giftId) async {
     await FirebaseFirestore.instance.collection('gifts').doc(giftId).delete();
   }
-
-
-
-
 }
