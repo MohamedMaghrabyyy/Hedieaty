@@ -1,13 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class EventModel {
-  final String id;
-  final String name;
-  final String description;
-  final String location;
-  final DateTime date;
-  final String userId;
+  String? id;
+  String name;
+  String description;
+  String location;
+  DateTime date; // This will store the DateTime object
+  String userId;
 
   EventModel({
-    required this.id,
+    this.id,
     required this.name,
     required this.description,
     required this.location,
@@ -15,25 +17,27 @@ class EventModel {
     required this.userId,
   });
 
-  // Factory constructor to create an EventModel from a map (useful for Firebase data)
-  factory EventModel.fromMap(Map<String, dynamic> map, String id) {
+  // From Firestore (using fromMap instead of fromFirestore)
+  factory EventModel.fromMap(Map<String, dynamic> data, String id) {
     return EventModel(
       id: id,
-      name: map['name'],
-      description: map['description'],
-      location: map['location'],
-      date: DateTime.parse(map['date']),
-      userId: map['userId'],
+      name: data['name'],
+      description: data['description'],
+      location: data['location'],
+      date: (data['date'] is Timestamp)
+          ? (data['date'] as Timestamp).toDate()  // Convert Timestamp to DateTime
+          : DateTime.parse(data['date']), // Convert String to DateTime if it's a String
+      userId: data['userId'],
     );
   }
 
-  // Method to convert the model to a map (useful for saving to Firebase)
+  // To Firestore (existing method)
   Map<String, dynamic> toMap() {
     return {
       'name': name,
       'description': description,
       'location': location,
-      'date': date.toIso8601String(),
+      'date': Timestamp.fromDate(date), // Convert DateTime to Firestore Timestamp
       'userId': userId,
     };
   }

@@ -1,8 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hedieaty/widgets/title_widget.dart';
-import 'package:hedieaty/views/event_list.dart';
+import 'package:hedieaty/views/event_list.dart'; // Import EventListPage
+import 'package:hedieaty/views/create_event.dart'; // Import CreateEventPage
 import 'package:hedieaty/models/user_model.dart'; // UserModel
+import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,6 +14,29 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  User? _user; // Add a variable to store the logged-in user
+  String _userName = ''; // Variable to hold the user's name
+
+  @override
+  void initState() {
+    super.initState();
+    _user = FirebaseAuth.instance.currentUser; // Fetch the logged-in user
+    if (_user != null) {
+      // Fetch the user's name from Firestore
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(_user!.uid)
+          .get()
+          .then((doc) {
+        if (doc.exists) {
+          setState(() {
+            _userName = doc['name']; // Assuming 'name' field exists in user document
+          });
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,9 +74,9 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              'Welcome, User!',
-              style: TextStyle(
+            Text(
+              'Welcome, ${_userName.isNotEmpty ? _userName : 'User'}!',
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -82,13 +107,21 @@ class _HomePageState extends State<HomePage> {
                       foregroundColor: Colors.black,
                       minimumSize: const Size.fromHeight(48),
                     ),
-                    icon: const Icon(Icons.add_circle_outline),
+                    icon: const Icon(Icons.event),
                     label: const Text(
-                      'Create Your Own Event/List',
+                      'My Events',
                       style: TextStyle(fontSize: 16),
                     ),
                     onPressed: () {
-                      Navigator.pushNamed(context, '/createEvent');
+                      // Pass the userId to EventListPage to show the user's events
+                      if (_user != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EventListPage(userId: _user!.uid),
+                          ),
+                        );
+                      }
                     },
                   ),
                 ),
@@ -97,7 +130,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 20),
             TextField(
               decoration: InputDecoration(
-                hintText: 'Search for friends’ gift lists...',
+                hintText: 'Search for a user...',
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: Colors.white,
@@ -144,45 +177,73 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildUserCard(UserModel user) {
-    return Card(
-      color: Colors.grey[200],
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
-      ),
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: Colors.white,
-          backgroundImage: AssetImage('assets/images/profile_icon.png'), // Default image
-        ),
-        title: Text(
-          user.name,
-          style: const TextStyle(
-            color: Color.fromARGB(255, 58, 2, 80),
-            fontWeight: FontWeight.bold,
+    return FutureBuilder<int>(
+      future: _fetchEventCount(user.uid), // Fetch event count for the user
+      builder: (context, eventCountSnapshot) {
+        if (eventCountSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (eventCountSnapshot.hasError) {
+          return Center(child: Text('Error: ${eventCountSnapshot.error}'));
+        }
+
+        int eventCount = eventCountSnapshot.data ?? 0;
+
+        return Card(
+          color: Colors.grey[200],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
           ),
-        ),
-        subtitle: Text(user.email),
-        trailing: CircleAvatar(
-          radius: 12,
-          backgroundColor: Colors.amber,
-          child: const Text(
-            '1', // Placeholder for number of events; update if dynamic fetching is needed
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          child: ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: Colors.white,
+              backgroundImage: AssetImage('assets/images/profile_icon.png'), // Default image
             ),
+            title: Text(
+              user.name,
+              style: const TextStyle(
+                color: Color.fromARGB(255, 58, 2, 80),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: Text(user.email),
+            trailing: eventCount > 0
+                ? CircleAvatar(
+              radius: 12,
+              backgroundColor: Colors.amber,
+              child: Text(
+                '$eventCount',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+                : null,
+            onTap: () {
+              // Pass the userId to the EventListPage
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EventListPage(userId: user.uid),
+                ),
+              );
+            },
           ),
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => EventListPage(friendName: user.name),
-            ),
-          );
-        },
-      ),
+        );
+      },
     );
+  }
+
+  Future<int> _fetchEventCount(String userId) async {
+    // Fetch the count of events for the user
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('events')
+        .where('userId', isEqualTo: userId) // Assuming events have a 'userId' field
+        .get();
+
+    return snapshot.size; // Return the count of events
   }
 }

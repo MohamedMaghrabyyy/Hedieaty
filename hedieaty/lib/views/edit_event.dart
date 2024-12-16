@@ -1,48 +1,71 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/models/event_model.dart';
 import 'package:hedieaty/services/firestore_service.dart';
+import 'package:hedieaty/models/event_model.dart';
 
 class EditEventPage extends StatefulWidget {
-  final EventModel? existingEvent;
+  final String? eventId;
 
-  const EditEventPage({super.key, this.existingEvent});
+  EditEventPage({required this.eventId});
 
   @override
   State<EditEventPage> createState() => _EditEventPageState();
 }
 
 class _EditEventPageState extends State<EditEventPage> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _locationController = TextEditingController();
-  final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _eventNameController = TextEditingController();
+  final TextEditingController _eventDescriptionController = TextEditingController();
+  final TextEditingController _eventLocationController = TextEditingController();
+  DateTime? _selectedDate; // This will store the selected date
   final FirestoreService _firestoreService = FirestoreService();
 
   @override
   void initState() {
     super.initState();
-    if (widget.existingEvent != null) {
-      _nameController.text = widget.existingEvent!.name;
-      _descriptionController.text = widget.existingEvent!.description;
-      _locationController.text = widget.existingEvent!.location;
-      _dateController.text = widget.existingEvent!.date.toLocal().toString().split(' ')[0];
+    _loadEvent();
+  }
+
+  // Load the event details from Firestore using the eventId
+  Future<void> _loadEvent() async {
+    final event = await _firestoreService.getEventById(widget.eventId);
+    if (event != null) {
+      _eventNameController.text = event.name;
+      _eventDescriptionController.text = event.description;
+      _eventLocationController.text = event.location;
+      _selectedDate = event.date; // Set the selected date for the event
     }
   }
 
-  void saveEvent() async {
-    final updatedEvent = EventModel(
-      id: widget.existingEvent?.id ?? DateTime.now().toString(),
-      name: _nameController.text,
-      description: _descriptionController.text,
-      location: _locationController.text,
-      date: DateTime.parse(_dateController.text),
-      userId: 'currentUserId', // You may want to fetch this dynamically
+  // Save the updated event details
+  void _saveEvent() {
+    if (_selectedDate != null) {
+      final updatedEvent = EventModel(
+        id: widget.eventId,
+        name: _eventNameController.text,
+        description: _eventDescriptionController.text,
+        location: _eventLocationController.text,
+        date: _selectedDate!,
+        userId: '', // Set this if needed, or keep as is
+      );
+
+      // Update the event in Firestore
+      _firestoreService.updateEvent(widget.eventId, updatedEvent);
+      Navigator.pop(context); // Go back after saving
+    }
+  }
+
+  // Show date picker
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
     );
-
-    // Call updateEvent with id and the updated EventModel
-    await _firestoreService.updateEvent(updatedEvent.id, updatedEvent);
-
-    Navigator.pop(context, updatedEvent);
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked; // Update the selected date
+      });
+    }
   }
 
   @override
@@ -54,27 +77,34 @@ class _EditEventPageState extends State<EditEventPage> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
-              controller: _nameController,
+              controller: _eventNameController,
               decoration: const InputDecoration(labelText: 'Event Name'),
             ),
             TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
+              controller: _eventDescriptionController,
+              decoration: const InputDecoration(labelText: 'Event Description'),
             ),
             TextField(
-              controller: _locationController,
-              decoration: const InputDecoration(labelText: 'Location'),
+              controller: _eventLocationController,
+              decoration: const InputDecoration(labelText: 'Event Location'),
             ),
-            TextField(
-              controller: _dateController,
-              decoration: const InputDecoration(labelText: 'Date (YYYY-MM-DD)'),
+            Row(
+              children: [
+                Text(
+                  _selectedDate != null
+                      ? 'Date: ${_selectedDate!.toLocal()}'
+                      : 'No Date Chosen!',
+                ),
+                IconButton(
+                  icon: Icon(Icons.calendar_today),
+                  onPressed: () => _selectDate(context),
+                ),
+              ],
             ),
-            const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: saveEvent,
+              onPressed: _saveEvent,
               child: const Text('Save Event'),
             ),
           ],

@@ -32,25 +32,30 @@ class FirestoreService {
   }
 
   // Create a new event
-  Future<void> createEvent(EventModel eventModel) async {
+  Future<void> createEvent(EventModel event) async {
     try {
-      DocumentReference docRef = await _firestore.collection('events').add(eventModel.toMap());
-      print("Event created with ID: ${docRef.id}");
+      await _firestore.collection('events').add({
+        'name': event.name,
+        'description': event.description,
+        'location': event.location,
+        'date': event.date,
+        'userId': event.userId,
+      });
+      print('Event created successfully.');
     } catch (e) {
-      print("Error creating event: $e");
+      print('Error creating event: $e');
     }
   }
 
+
   // Update an existing event by ID
-  Future<void> updateEvent(String eventId, EventModel updatedEvent) async {
+  Future<void> updateEvent(String? eventId, EventModel updatedEvent) async {
     try {
-      // Your Firestore update logic here
-      await FirebaseFirestore.instance.collection('events').doc(eventId).update({
+      await _firestore.collection('events').doc(eventId).update({
         'name': updatedEvent.name,
         'description': updatedEvent.description,
         'location': updatedEvent.location,
         'date': updatedEvent.date.toIso8601String(),
-        // Add other fields as needed
       });
     } catch (e) {
       rethrow;
@@ -58,7 +63,7 @@ class FirestoreService {
   }
 
   // Delete an event by ID
-  Future<void> deleteEvent(String eventId) async {
+  Future<void> deleteEvent(String? eventId) async {
     try {
       await _firestore.collection('events').doc(eventId).delete();
       print("Event deleted with ID: $eventId");
@@ -81,6 +86,28 @@ class FirestoreService {
     }
   }
 
+// Stream to fetch events for a specific user
+  Stream<List<EventModel>> streamEventsForUser(String userId) {
+    return _firestore
+        .collection('events')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((querySnapshot) => querySnapshot.docs
+        .map((doc) => EventModel.fromMap(doc.data(), doc.id))
+        .toList());
+  }
+  // Fetch a specific event by its ID
+  Future<EventModel?> getEventById(String? eventId) async {
+    try {
+      final docSnapshot = await _firestore.collection('events').doc(eventId).get();
+      if (docSnapshot.exists) {
+        return EventModel.fromMap(docSnapshot.data() as Map<String, dynamic>, docSnapshot.id);
+      }
+    } catch (e) {
+      print('Error fetching event by ID: $e');
+    }
+    return null;
+  }
   // Create a new gift
   Future<void> createGift(GiftModel giftModel) async {
     try {
@@ -122,6 +149,22 @@ class FirestoreService {
     } catch (e) {
       print("Error fetching gifts: $e");
       return const Stream.empty();
+    }
+  }
+
+  // Fetch all gifts for a specific event
+  Future<List<GiftModel>> getGiftsByEvent(String eventId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('gifts')
+          .where('eventId', isEqualTo: eventId) // Use 'eventId' for filtering
+          .get();
+
+      return snapshot.docs
+          .map((doc) => GiftModel.fromMap(doc.data() as Map<String, dynamic>, doc.id)) // Use 'fromMap'
+          .toList();
+    } catch (e) {
+      rethrow;
     }
   }
 }
