@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';  // Import Firestore
 import 'package:flutter/material.dart';
-import 'title_widget.dart';
-import 'package:hedieaty/event_list.dart';
-import 'package:hedieaty/profile_page.dart';
-import 'package:hedieaty/user_model.dart';  // Import UserModel
+import 'package:hedieaty/widgets/title_widget.dart';
+import 'package:hedieaty/views/event_list.dart';
+import 'package:hedieaty/views/profile_page.dart';
+import 'package:hedieaty/models//user_model.dart';  // Import UserModel
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

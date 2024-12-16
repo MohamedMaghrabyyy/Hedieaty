@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/gift_details.dart';
+import 'package:hedieaty/views/gift_details.dart';
 
 class GiftListPage extends StatefulWidget {
   final String? eventName;

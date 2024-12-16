@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/title_widget.dart';
-import 'package:hedieaty/firebase_auth_service.dart'; // Import the FirebaseAuthService
+import 'package:hedieaty/widgets/title_widget.dart';
+import 'package:hedieaty/services/firebase_auth_service.dart'; // Import the FirebaseAuthService
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginPage extends StatefulWidget {

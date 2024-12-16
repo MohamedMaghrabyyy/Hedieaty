@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/firebase_auth_service.dart'; // Import the FirebaseAuthService
+import 'package:hedieaty/services/firebase_auth_service.dart'; // Import the FirebaseAuthService
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({Key? key}) : super(key: key);

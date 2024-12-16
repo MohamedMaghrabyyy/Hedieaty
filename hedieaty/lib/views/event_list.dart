@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/create_event.dart'; // Import the CreateEventPage
-import 'package:hedieaty/gift_list.dart'; // Import the GiftListPage
-import 'package:hedieaty/edit_event.dart'; // Import the EditEventPage
+import 'package:hedieaty/views/create_event.dart'; // Import the CreateEventPage
+import 'package:hedieaty/views/gift_list.dart'; // Import the GiftListPage
+import 'package:hedieaty/views/edit_event.dart'; // Import the EditEventPage
 
 class EventListPage extends StatefulWidget {
   final String? friendName;

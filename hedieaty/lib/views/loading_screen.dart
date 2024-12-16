@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:hedieaty/title_widget.dart';
+import 'package:hedieaty/widgets/title_widget.dart';
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
 

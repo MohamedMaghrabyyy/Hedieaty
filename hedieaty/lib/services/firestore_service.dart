@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore
-import 'package:hedieaty/user_model.dart'; // Import the UserModel class
+import 'package:hedieaty/models/user_model.dart'; // Import the UserModel class
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:hedieaty/firestore_service.dart';  // FirestoreService
-import 'package:hedieaty/user_model.dart';        // UserModel
+import 'package:hedieaty/services/firestore_service.dart';  // FirestoreService
+import 'package:hedieaty/models/user_model.dart';        // UserModel
 
 class SignUpPage extends StatefulWidget {
   @override
