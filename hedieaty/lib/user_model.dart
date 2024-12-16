@@ -1,12 +1,10 @@
 class UserModel {
   final String email;
   final String name;
-  final String phoneNumber;
 
   UserModel({
     required this.email,
     required this.name,
-    required this.phoneNumber,
   });
 
   // Convert UserModel to a Map to store in Firestore
@@ -14,7 +12,6 @@ class UserModel {
     return {
       'email': email,
       'name': name,
-      'phoneNumber': phoneNumber,
     };
   }
 
@@ -23,7 +20,6 @@ class UserModel {
     return UserModel(
       email: map['email'] ?? '',
       name: map['name'] ?? '',
-      phoneNumber: map['phoneNumber'] ?? '',
     );
   }
 }

@@ -1,56 +1,74 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import the FirebaseAuth User class
-import 'package:hedieaty/firebase_auth_service.dart';
-import 'package:hedieaty/firestore_service.dart';
-import 'package:hedieaty/user_model.dart';
+import 'package:hedieaty/firestore_service.dart';  // FirestoreService
+import 'package:hedieaty/user_model.dart';        // UserModel
 
 class SignUpPage extends StatefulWidget {
-  const SignUpPage({super.key});
-
   @override
-  State<SignUpPage> createState() => _SignUpPageState();
+  _SignUpPageState createState() => _SignUpPageState();
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  final GlobalKey<FormState> signupKey = GlobalKey();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController(); // Phone number controller
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
-  final FirebaseAuthService _authService = FirebaseAuthService(); // Instance of FirebaseAuthService
-  final FirestoreService _firestoreService = FirestoreService(); // Instance of FirestoreService
+  bool _isLoading = false;
 
-  // Sign up method
-  void _signUp() async {
-    if (signupKey.currentState?.validate() ?? false) {
+  // Method to handle sign-up process
+  Future<void> _signUp() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
       try {
-        // Sign up the user with FirebaseAuth
-        User? user = await _authService.signUp(
-          emailController.text,
-          passwordController.text,
+        // Get user input from the form fields
+        String email = _emailController.text.trim();
+        String password = _passwordController.text.trim();
+        String name = _nameController.text.trim();
+
+        // Create a new user with Firebase Authentication
+        UserCredential userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(email: email, password: password);
+
+        // Create a UserModel instance
+        UserModel newUser = UserModel(
+          name: name,
+          email: email,
+          // Add any additional user fields here
         );
 
-        if (user != null) {
-          // Create a UserModel object to store user details (email, name, and phone number)
-          UserModel userModel = UserModel(
-            email: emailController.text,
-            name: nameController.text,
-            phoneNumber: phoneController.text,
-          );
+        // Save the user data in Firestore (Firestore will generate the document ID)
+        await FirestoreService().saveUserData(newUser);
 
-          // After the user is created, save user data to Firestore
-          await _firestoreService.saveUserData(
-            user.uid, // Firebase user UID
-            userModel, // UserModel to store in Firestore
-          );
-
-          // Navigate to home page after successful sign-up and data saving
-          Navigator.pushReplacementNamed(context, '/home');
-        }
+        // After sign-up, navigate to the home screen or wherever needed
+        Navigator.pushReplacementNamed(context, '/home');
       } catch (e) {
-        // Handle sign-up error (show an alert or error message)
-        print("Error: $e");
+        // Handle sign-up errors and display appropriate error messages
+        String errorMessage = 'Sign-up failed. Please try again.';
+
+        if (e is FirebaseAuthException) {
+          if (e.code == 'weak-password') {
+            errorMessage = 'Password is too weak. Please choose a stronger password.';
+          } else if (e.code == 'email-already-in-use') {
+            errorMessage = 'An account already exists for this email.';
+          } else if (e.code == 'invalid-email') {
+            errorMessage = 'The email address is badly formatted.';
+          } else if (e.code == 'operation-not-allowed') {
+            errorMessage = 'Email/password accounts are not enabled.';
+          }
+        }
+
+        // Show the error in a snack bar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -58,137 +76,66 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 58, 2, 80),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 60),
-            Container(
-              width: 280,
-              padding: const EdgeInsets.all(20.0),
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 58, 2, 80),
-                border: Border.all(color: Colors.white),
-                borderRadius: BorderRadius.circular(10.0),
+      appBar: AppBar(
+        title: const Text('Sign Up'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              // Name input
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(labelText: 'Name'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your name';
+                  }
+                  return null;
+                },
               ),
-              child: Form(
-                key: signupKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      "Sign Up",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 16.0),
-                    TextFormField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Enter your Name...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12.0)),
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16.0),
-                    TextFormField(
-                      controller: emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Enter your Email...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12.0)),
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16.0),
-                    TextFormField(
-                      controller: passwordController,
-                      decoration: const InputDecoration(
-                        labelText: 'Enter your password...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12.0)),
-                        ),
-                        hintText: 'Enter your password',
-                        hintStyle: TextStyle(color: Color.fromARGB(255, 200, 200, 200)),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16.0),
-                    TextFormField(
-                      controller: phoneController,
-                      decoration: const InputDecoration(
-                        labelText: 'Enter your Phone Number...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12.0)),
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      keyboardType: TextInputType.phone,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your phone number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20.0),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber,
-                        foregroundColor: Colors.black,
-                      ),
-                      onPressed: _signUp, // Call the sign-up method
-                      child: const Text('Sign Up', style: TextStyle(fontSize: 16)),
-                    ),
-                    const SizedBox(height: 10),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pushReplacementNamed(context, '/login');
-                      },
-                      child: const Text(
-                        "Already have an account? Login!",
-                        style: TextStyle(
-                          color: Colors.amber,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              // Email input
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(labelText: 'Email'),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  if (!RegExp(r'\S+@\S+\.\S+').hasMatch(value)) {
+                    return 'Enter a valid email address';
+                  }
+                  return null;
+                },
               ),
-            ),
-          ],
+              // Password input
+              TextFormField(
+                controller: _passwordController,
+                decoration: InputDecoration(labelText: 'Password'),
+                obscureText: true,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your password';
+                  }
+                  if (value.length < 6) {
+                    return 'Password should be at least 6 characters';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              // Sign up button
+              _isLoading
+                  ? CircularProgressIndicator()
+                  : ElevatedButton(
+                onPressed: _signUp,
+                child: const Text('Sign Up'),
+              ),
+            ],
+          ),
         ),
       ),
     );

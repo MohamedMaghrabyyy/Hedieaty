@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';  // Import Firestore
 import 'package:flutter/material.dart';
 import 'title_widget.dart';
 import 'package:hedieaty/event_list.dart';
 import 'package:hedieaty/profile_page.dart';
+import 'package:hedieaty/user_model.dart';  // Import UserModel
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,27 +13,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final List<Map<String, dynamic>> friends = [
-    {
-      'name': 'Alice',
-      'profilePic': 'assets/images/profile_icon.png',
-      'phone': '+123456789',
-      'events': 2,
-    },
-    {
-      'name': 'Bob',
-      'profilePic': 'assets/images/profile_icon.png',
-      'phone': '+987654321',
-      'events': 0,
-    },
-    {
-      'name': 'Charlie',
-      'profilePic': 'assets/images/profile_icon.png',
-      'phone': '+456123789',
-      'events': 1,
-    }
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -132,56 +113,69 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: ListView.builder(
-                itemCount: friends.length,
-                itemBuilder: (context, index) {
-                  final friend = friends[index];
-                  return Card(
-                    color: Colors.grey[200],
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15.0),
-                    ),
-                    margin: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.white,
-                        backgroundImage: AssetImage(friend['profilePic']),
-                      ),
-                      title: Text(
-                        friend['name'],
-                        style: const TextStyle(
-                          color: Color.fromARGB(255, 58, 2, 80),
-                          fontWeight: FontWeight.bold,
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('users').snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text('No users found.'));
+                  }
+
+                  // Use ListView.builder to create list items
+                  return ListView.builder(
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (context, index) {
+                      var doc = snapshot.data!.docs[index];
+                      var user = UserModel.fromMap(doc.data() as Map<String, dynamic>);
+
+                      return Card(
+                        color: Colors.grey[200],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15.0),
                         ),
-                      ),
-                      subtitle: Text(
-                        friend['phone'],
-                        style: const TextStyle(color: Colors.black54),
-                      ),
-                      trailing: friend['events'] > 0
-                          ? CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Colors.amber,
-                        child: Text(
-                          friend['events'].toString(),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
+                        margin: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: ListTile(
+                          leading: const CircleAvatar(
+                            backgroundColor: Colors.white,
+                            backgroundImage: AssetImage('assets/images/profile_icon.png'), // Default image
                           ),
-                        ),
-                      )
-                          : null,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EventListPage(
-                              friendName: friend['name'],
+                          title: Text(
+                            user.name,
+                            style: const TextStyle(
+                              color: Color.fromARGB(255, 58, 2, 80),
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        );
-                      },
-                    ),
+                          subtitle: Text(user.email),
+                          trailing: CircleAvatar(
+                            radius: 12,
+                            backgroundColor: Colors.amber,
+                            child: const Text(
+                              '1',  // Default number of events
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EventListPage(
+                                  friendName: user.name,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
                   );
                 },
               ),
