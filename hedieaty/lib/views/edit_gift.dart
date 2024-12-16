@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/models/gift_model.dart';
+import 'package:hedieaty/services/firestore_service.dart';
 
 class EditGiftPage extends StatefulWidget {
-  final GiftModel gift; // Pass the existing gift to edit
+  final String giftId;
+  final GiftModel gift;
 
-  EditGiftPage({required this.gift});
+  EditGiftPage({required this.giftId, required this.gift});
 
   @override
   _EditGiftPageState createState() => _EditGiftPageState();
@@ -18,7 +20,6 @@ class _EditGiftPageState extends State<EditGiftPage> {
 
   String _selectedCategory = '';
   String _selectedStatus = '';
-  double _price = 0.0;
 
   @override
   void initState() {
@@ -30,81 +31,111 @@ class _EditGiftPageState extends State<EditGiftPage> {
     _selectedStatus = widget.gift.status;
   }
 
-  void _saveGift() {
+  Future<void> _saveGift() async {
     if (_formKey.currentState!.validate()) {
-      final updatedGift = GiftModel(
-        id: widget.gift.id,
-        name: _nameController.text,
-        description: _descriptionController.text,
-        category: _selectedCategory,
-        price: double.parse(_priceController.text),
-        status: _selectedStatus,
-        isPledged: widget.gift.isPledged,
-        eventId: widget.gift.eventId,
-      );
-      // Save the updated gift to the database (e.g., Firestore)
-      // Your Firestore updating code goes here
+      try {
+        // Create a new GiftModel instance with the updated fields
+        final updatedGift = GiftModel(
+          id: widget.giftId, // Explicitly set the gift ID
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          category: _selectedCategory,
+          price: double.parse(_priceController.text.trim()),
+          status: _selectedStatus,
+          isPledged: widget.gift.isPledged,
+          eventId: widget.gift.eventId,
+        );
 
-      Navigator.pop(context); // Navigate back after saving
+        // Update the gift in Firestore
+        await FirestoreService().updateGift(widget.giftId, updatedGift.toMap());
+
+        // Navigate back after saving
+        Navigator.pop(context);
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update gift: $error')),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Edit Gift')),
+      appBar: AppBar(title: const Text('Edit Gift')),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(labelText: 'Gift Name'),
-                validator: (value) => value!.isEmpty ? 'Please enter a name' : null,
+                decoration: const InputDecoration(labelText: 'Gift Name'),
+                validator: (value) =>
+                value == null || value.isEmpty ? 'Please enter a name' : null,
+                readOnly: widget.gift.isPledged, // Prevent edits for pledged gifts
               ),
               TextFormField(
                 controller: _descriptionController,
-                decoration: InputDecoration(labelText: 'Description'),
-                validator: (value) => value!.isEmpty ? 'Please enter a description' : null,
+                decoration: const InputDecoration(labelText: 'Description'),
+                validator: (value) =>
+                value == null || value.isEmpty ? 'Please enter a description' : null,
+                readOnly: widget.gift.isPledged,
               ),
               TextFormField(
                 controller: _priceController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Price'),
-                validator: (value) => value!.isEmpty ? 'Please enter a price' : null,
+                decoration: const InputDecoration(labelText: 'Price'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a price';
+                  }
+                  if (double.tryParse(value) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
+                readOnly: widget.gift.isPledged,
               ),
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
-                decoration: InputDecoration(labelText: 'Category'),
+                decoration: const InputDecoration(labelText: 'Category'),
                 items: ['Electronics', 'Books', 'Clothing', 'Toys']
-                    .map((category) => DropdownMenuItem(value: category, child: Text(category)))
+                    .map((category) => DropdownMenuItem(
+                  value: category,
+                  child: Text(category),
+                ))
                     .toList(),
-                onChanged: (value) {
+                onChanged: widget.gift.isPledged
+                    ? null // Disable dropdown for pledged gifts
+                    : (value) {
                   setState(() {
                     _selectedCategory = value!;
                   });
                 },
-                validator: (value) => value == null ? 'Please select a category' : null,
               ),
               DropdownButtonFormField<String>(
                 value: _selectedStatus,
-                decoration: InputDecoration(labelText: 'Status'),
+                decoration: const InputDecoration(labelText: 'Status'),
                 items: ['available', 'pledged']
-                    .map((status) => DropdownMenuItem(value: status, child: Text(status)))
+                    .map((status) => DropdownMenuItem(
+                  value: status,
+                  child: Text(status),
+                ))
                     .toList(),
-                onChanged: (value) {
+                onChanged: widget.gift.isPledged
+                    ? null
+                    : (value) {
                   setState(() {
                     _selectedStatus = value!;
                   });
                 },
-                validator: (value) => value == null ? 'Please select a status' : null,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _saveGift,
-                child: Text('Save Gift'),
+                onPressed: widget.gift.isPledged ? null : _saveGift,
+                child: const Text('Save Gift'),
               ),
             ],
           ),

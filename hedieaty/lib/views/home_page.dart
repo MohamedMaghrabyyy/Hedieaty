@@ -177,8 +177,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildUserCard(UserModel user) {
-    return FutureBuilder<int>(
-      future: _fetchEventCount(user.uid), // Fetch event count for the user
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('events')
+          .where('userId', isEqualTo: user.uid)
+          .snapshots(), // Use snapshots to listen for real-time changes
       builder: (context, eventCountSnapshot) {
         if (eventCountSnapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -188,7 +191,7 @@ class _HomePageState extends State<HomePage> {
           return Center(child: Text('Error: ${eventCountSnapshot.error}'));
         }
 
-        int eventCount = eventCountSnapshot.data ?? 0;
+        int eventCount = eventCountSnapshot.data?.docs.length ?? 0; // Get the count of events
 
         return Card(
           color: Colors.grey[200],
@@ -236,6 +239,7 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+
 
   Future<int> _fetchEventCount(String userId) async {
     // Fetch the count of events for the user

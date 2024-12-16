@@ -108,63 +108,33 @@ class FirestoreService {
     }
     return null;
   }
-  // Create a new gift
-  Future<void> createGift(GiftModel giftModel) async {
-    try {
-      DocumentReference docRef = await _firestore.collection('gifts').add(giftModel.toMap());
-      print("Gift created with ID: ${docRef.id}");
-    } catch (e) {
-      print("Error creating gift: $e");
-    }
+  Future<void> addGift(GiftModel gift) async {
+    await FirebaseFirestore.instance.collection('gifts').add(gift.toMap());
   }
-
-  // Update an existing gift by ID
-  Future<void> updateGift(String giftId, Map<String, dynamic> updates) async {
-    try {
-      await _firestore.collection('gifts').doc(giftId).update(updates);
-      print("Gift updated with ID: $giftId");
-    } catch (e) {
-      print("Error updating gift: $e");
-    }
+  Stream<List<GiftModel>> streamGiftsForEvent(String? eventId) {
+    return FirebaseFirestore.instance
+        .collection('gifts')
+        .where('eventId', isEqualTo: eventId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+      return GiftModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+    }).toList());
   }
-
-  // Delete a gift by ID
+  Future<GiftModel?> getGiftById(String giftId) async {
+    final doc = await FirebaseFirestore.instance.collection('gifts').doc(giftId).get();
+    if (doc.exists) {
+      return GiftModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+    }
+    return null;
+  }
+  Future<void> updateGift(String giftId, Map<String, dynamic> updatedData) async {
+    await FirebaseFirestore.instance.collection('gifts').doc(giftId).update(updatedData);
+  }
   Future<void> deleteGift(String giftId) async {
-    try {
-      await _firestore.collection('gifts').doc(giftId).delete();
-      print("Gift deleted with ID: $giftId");
-    } catch (e) {
-      print("Error deleting gift: $e");
-    }
+    await FirebaseFirestore.instance.collection('gifts').doc(giftId).delete();
   }
 
-  // Get all gifts
-  Stream<List<GiftModel>> getAllGifts() {
-    try {
-      return _firestore.collection('gifts').snapshots().map((snapshot) {
-        return snapshot.docs.map((doc) {
-          return GiftModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-        }).toList();
-      });
-    } catch (e) {
-      print("Error fetching gifts: $e");
-      return const Stream.empty();
-    }
-  }
 
-  // Fetch all gifts for a specific event
-  Future<List<GiftModel>> getGiftsByEvent(String eventId) async {
-    try {
-      final snapshot = await _firestore
-          .collection('gifts')
-          .where('eventId', isEqualTo: eventId) // Use 'eventId' for filtering
-          .get();
 
-      return snapshot.docs
-          .map((doc) => GiftModel.fromMap(doc.data() as Map<String, dynamic>, doc.id)) // Use 'fromMap'
-          .toList();
-    } catch (e) {
-      rethrow;
-    }
-  }
+
 }

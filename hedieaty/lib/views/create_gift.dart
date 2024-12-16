@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/models/gift_model.dart';
+import 'package:hedieaty/services/firestore_service.dart'; // Replace with your Firestore service class
 
 class CreateGiftPage extends StatefulWidget {
-  final String eventId; // Pass the eventId to associate the gift with an event
+  final String? eventId;
 
   CreateGiftPage({required this.eventId});
 
@@ -16,85 +17,108 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
 
-  String _selectedCategory = 'Electronics'; // Default category
-  String _selectedStatus = 'available'; // Default status
-  double _price = 0.0;
+  String _selectedCategory = 'Electronics';
+  String _selectedStatus = 'available';
 
-  void _saveGift() {
+  Future<void> _saveGift() async {
     if (_formKey.currentState!.validate()) {
-      final gift = GiftModel(
-        id: DateTime.now().toString(), // Unique ID for the new gift
-        name: _nameController.text,
-        description: _descriptionController.text,
-        category: _selectedCategory,
-        price: double.parse(_priceController.text),
-        status: _selectedStatus,
-        isPledged: false, // Default is not pledged
-        eventId: widget.eventId, // Use the passed eventId
-      );
-      // Save the gift to the database (e.g., Firestore)
-      // Your Firestore saving code goes here
+      try {
+        final gift = GiftModel(
+          id: DateTime.now().toString(),
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          category: _selectedCategory,
+          price: double.parse(_priceController.text.trim()),
+          status: _selectedStatus,
+          isPledged: false,
+          eventId: widget.eventId,
+        );
 
-      Navigator.pop(context); // Navigate back after saving
+        // Save the gift to Firestore
+        await FirestoreService().addGift(gift);
+
+        // Navigate back after saving
+        Navigator.pop(context);
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save gift: $error')),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Create Gift')),
+      appBar: AppBar(title: const Text('Create Gift')),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: InputDecoration(labelText: 'Gift Name'),
-                validator: (value) => value!.isEmpty ? 'Please enter a name' : null,
+                decoration: const InputDecoration(labelText: 'Gift Name'),
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please enter a name'
+                    : null,
               ),
               TextFormField(
                 controller: _descriptionController,
-                decoration: InputDecoration(labelText: 'Description'),
-                validator: (value) => value!.isEmpty ? 'Please enter a description' : null,
+                decoration: const InputDecoration(labelText: 'Description'),
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Please enter a description'
+                    : null,
               ),
               TextFormField(
                 controller: _priceController,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: 'Price'),
-                validator: (value) => value!.isEmpty ? 'Please enter a price' : null,
+                decoration: const InputDecoration(labelText: 'Price'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a price';
+                  }
+                  if (double.tryParse(value) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
               ),
               DropdownButtonFormField<String>(
                 value: _selectedCategory,
-                decoration: InputDecoration(labelText: 'Category'),
+                decoration: const InputDecoration(labelText: 'Category'),
                 items: ['Electronics', 'Books', 'Clothing', 'Toys']
-                    .map((category) => DropdownMenuItem(value: category, child: Text(category)))
+                    .map((category) => DropdownMenuItem(
+                  value: category,
+                  child: Text(category),
+                ))
                     .toList(),
                 onChanged: (value) {
                   setState(() {
                     _selectedCategory = value!;
                   });
                 },
-                validator: (value) => value == null ? 'Please select a category' : null,
               ),
               DropdownButtonFormField<String>(
                 value: _selectedStatus,
-                decoration: InputDecoration(labelText: 'Status'),
+                decoration: const InputDecoration(labelText: 'Status'),
                 items: ['available', 'pledged']
-                    .map((status) => DropdownMenuItem(value: status, child: Text(status)))
+                    .map((status) => DropdownMenuItem(
+                  value: status,
+                  child: Text(status),
+                ))
                     .toList(),
                 onChanged: (value) {
                   setState(() {
                     _selectedStatus = value!;
                   });
                 },
-                validator: (value) => value == null ? 'Please select a status' : null,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _saveGift,
-                child: Text('Save Gift'),
+                child: const Text('Save Gift'),
               ),
             ],
           ),
