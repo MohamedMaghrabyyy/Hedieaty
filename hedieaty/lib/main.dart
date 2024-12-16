@@ -11,11 +11,12 @@ import 'package:hedieaty/views/create_event.dart';
 import 'package:hedieaty/views/edit_event.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hedieaty/services/firebase_options.dart';
+import 'package:hedieaty/models/event_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Initialize Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform,);
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -38,7 +39,7 @@ class MyApp extends StatelessWidget {
         '/createEvent': (context) => const CreateEventPage(),
         '/editEvent': (context) => (ModalRoute.of(context)?.settings.arguments != null)
             ? EditEventPage(
-          existingEvent: ModalRoute.of(context)!.settings.arguments as Map<String, String>,
+          existingEvent: ModalRoute.of(context)!.settings.arguments as EventModel,
         )
             : const EditEventPage(),
       },

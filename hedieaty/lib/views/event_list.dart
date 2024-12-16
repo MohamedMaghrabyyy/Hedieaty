@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/views/create_event.dart'; // Import the CreateEventPage
-import 'package:hedieaty/views/gift_list.dart'; // Import the GiftListPage
-import 'package:hedieaty/views/edit_event.dart'; // Import the EditEventPage
+import 'package:hedieaty/views/create_event.dart'; // Import CreateEventPage
+import 'package:hedieaty/views/gift_list.dart'; // Import GiftListPage
+import 'package:hedieaty/views/edit_event.dart'; // Import EditEventPage
+import 'package:hedieaty/models/event_model.dart';
+import 'package:hedieaty/services/firestore_service.dart';
 
 class EventListPage extends StatefulWidget {
   final String? friendName;
@@ -13,10 +15,7 @@ class EventListPage extends StatefulWidget {
 }
 
 class _EventListPageState extends State<EventListPage> {
-  List<Map<String, String>> events = [
-    {'name': 'Birthday Party', 'date': '2024-12-15'},
-    {'name': 'Wedding', 'date': '2024-12-20'},
-  ];
+  final FirestoreService _firestoreService = FirestoreService();
 
   void addEvent() async {
     final newEvent = await Navigator.push(
@@ -28,31 +27,31 @@ class _EventListPageState extends State<EventListPage> {
 
     if (newEvent != null) {
       setState(() {
-        events.add(newEvent);
+        // If new event is created, you may want to add it to Firestore.
+        // You can use _firestoreService.addEvent(newEvent) here if needed.
       });
     }
   }
 
-  void editEvent(int index) async {
+  void editEvent(EventModel event) async {
     final updatedEvent = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EditEventPage(
-          existingEvent: events[index], // Pass the existing event to be edited
-        ),
+        builder: (context) => EditEventPage(existingEvent: event), // Pass EventModel
       ),
     );
 
     if (updatedEvent != null) {
       setState(() {
-        events[index] = updatedEvent;
+        // Update event in list after editing, may need to push the update to Firestore as well.
       });
     }
   }
 
-  void deleteEvent(int index) {
+  void deleteEvent(EventModel event) async {
+    await _firestoreService.deleteEvent(event.id); // Delete event from Firestore
     setState(() {
-      events.removeAt(index);
+      // Update UI after deletion.
     });
   }
 
@@ -88,33 +87,52 @@ class _EventListPageState extends State<EventListPage> {
           ),
         ),
         padding: const EdgeInsets.all(16.0),
-        child: ListView.builder(
-          itemCount: events.length,
-          itemBuilder: (context, index) {
-            final event = events[index];
-            return Card(
-              color: Colors.grey[200],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15.0),
-              ),
-              child: ListTile(
-                title: Text(event['name']!),
-                subtitle: Text(event['date']!),
-                onTap: () => navigateToGiftList(event['name']!), // Navigate to GiftListPage
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.amber),
-                      onPressed: () => editEvent(index),
+        child: StreamBuilder<List<EventModel>>(
+          stream: _firestoreService.getAllEvents(), // Use Firestore stream
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('No events available.'));
+            }
+
+            final events = snapshot.data!;
+
+            return ListView.builder(
+              itemCount: events.length,
+              itemBuilder: (context, index) {
+                final event = events[index];
+                return Card(
+                  color: Colors.grey[200],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15.0),
+                  ),
+                  child: ListTile(
+                    title: Text(event.name),
+                    subtitle: Text(event.date.toLocal().toString().split(' ')[0]),
+                    onTap: () => navigateToGiftList(event.name),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.amber),
+                          onPressed: () => editEvent(event),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => deleteEvent(event),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => deleteEvent(index),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             );
           },
         ),

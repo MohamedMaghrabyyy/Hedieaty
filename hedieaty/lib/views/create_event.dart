@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hedieaty/models/event_model.dart';
+import 'package:hedieaty/services/firestore_service.dart';
 
 class CreateEventPage extends StatefulWidget {
   const CreateEventPage({super.key});
@@ -9,95 +11,135 @@ class CreateEventPage extends StatefulWidget {
 
 class _CreateEventPageState extends State<CreateEventPage> {
   final TextEditingController _eventNameController = TextEditingController();
-  final TextEditingController _eventDescriptionController =
-  TextEditingController();
+  final TextEditingController _eventDescriptionController = TextEditingController();
+  final TextEditingController _eventLocationController = TextEditingController();
+  final FirestoreService _firestoreService = FirestoreService();
   DateTime? _selectedDate;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Event'),
-        backgroundColor: const Color.fromARGB(255, 58, 2, 80),
+        title: const Text(
+          'Create Event',
+          style: TextStyle(color: Colors.white), // Set text color to white
+        ),
+          backgroundColor: const Color.fromARGB(255, 58, 2, 80),
+        iconTheme: const IconThemeData(color: Colors.white), // Ensure icon color is white
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _eventNameController,
-              decoration: const InputDecoration(
-                labelText: 'Event Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16.0),
-            TextField(
-              controller: _eventDescriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Event Description',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 16.0),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _selectedDate == null
-                        ? 'No Date Selected'
-                        : 'Date: ${_selectedDate!.toLocal()}'.split(' ')[0],
-                  ),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _eventNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Event Name',
+                  border: OutlineInputBorder(),
                 ),
-                ElevatedButton(
+              ),
+              const SizedBox(height: 16.0),
+              TextField(
+                controller: _eventDescriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Event Description',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              const SizedBox(height: 16.0),
+              TextField(
+                controller: _eventLocationController,
+                decoration: const InputDecoration(
+                  labelText: 'Event Location',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _selectedDate == null
+                          ? 'No Date Selected'
+                          : 'Date: ${_selectedDate!.toLocal()}'.split(' ')[0],
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null && picked != _selectedDate) {
+                        setState(() {
+                          _selectedDate = picked;
+                        });
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber, // Amber color for button
+                    ),
+                    child: const Text('Select Date'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24.0),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 58, 2, 80), // App-specific color
+                    foregroundColor: Colors.white, // Text color for the button
+                  ),
                   onPressed: () async {
-                    final DateTime? picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null && picked != _selectedDate) {
-                      setState(() {
-                        _selectedDate = picked;
-                      });
+                    if (_eventNameController.text.isEmpty ||
+                        _eventLocationController.text.isEmpty ||
+                        _selectedDate == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill all fields and select a date'),
+                        ),
+                      );
+                    } else {
+                      try {
+                        // Create EventModel
+                        EventModel newEvent = EventModel(
+                          id: '', // ID will be generated by Firestore
+                          name: _eventNameController.text,
+                          description: _eventDescriptionController.text,
+                          location: _eventLocationController.text,
+                          date: _selectedDate!,
+                          userId: 'USER_ID', // Replace with actual logged-in user ID
+                        );
+
+                        // Save event using FirestoreService
+                        await _firestoreService.createEvent(newEvent);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Event created successfully!'),
+                          ),
+                        );
+                        Navigator.pop(context);
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error creating event: $e'),
+                          ),
+                        );
+                      }
                     }
                   },
-                  child: const Text('Select Date'),
+                  child: const Text('Create Event'),
                 ),
-              ],
-            ),
-            const SizedBox(height: 24.0),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 58, 2, 80),
-                ),
-                onPressed: () {
-                  if (_eventNameController.text.isEmpty ||
-                      _selectedDate == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please fill all fields and select a date'),
-                      ),
-                    );
-                  } else {
-                    // Logic for creating an event
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Event created successfully!'),
-                      ),
-                    );
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text('Create Event'),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

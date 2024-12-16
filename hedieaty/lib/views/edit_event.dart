@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hedieaty/models/event_model.dart';
+import 'package:hedieaty/services/firestore_service.dart';
 
 class EditEventPage extends StatefulWidget {
-  final Map<String, String>? existingEvent; // Pass existing event data for editing
+  final EventModel? existingEvent;
 
   const EditEventPage({super.key, this.existingEvent});
 
@@ -11,114 +13,69 @@ class EditEventPage extends StatefulWidget {
 
 class _EditEventPageState extends State<EditEventPage> {
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   void initState() {
     super.initState();
     if (widget.existingEvent != null) {
-      _nameController.text = widget.existingEvent!['name'] ?? '';
-      _dateController.text = widget.existingEvent!['date'] ?? '';
+      _nameController.text = widget.existingEvent!.name;
+      _descriptionController.text = widget.existingEvent!.description;
+      _locationController.text = widget.existingEvent!.location;
+      _dateController.text = widget.existingEvent!.date.toLocal().toString().split(' ')[0];
     }
   }
 
-  void saveEvent() {
-    final String name = _nameController.text.trim();
-    final String date = _dateController.text.trim();
+  void saveEvent() async {
+    final updatedEvent = EventModel(
+      id: widget.existingEvent?.id ?? DateTime.now().toString(),
+      name: _nameController.text,
+      description: _descriptionController.text,
+      location: _locationController.text,
+      date: DateTime.parse(_dateController.text),
+      userId: 'currentUserId', // You may want to fetch this dynamically
+    );
 
-    if (name.isEmpty || date.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
-      return;
-    }
+    // Call updateEvent with id and the updated EventModel
+    await _firestoreService.updateEvent(updatedEvent.id, updatedEvent);
 
-    final Map<String, String> event = {
-      'name': name,
-      'date': date,
-    };
-
-    Navigator.pop(context, event); // Return the new/edited event to the previous screen
+    Navigator.pop(context, updatedEvent);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.existingEvent == null ? 'Create Event' : 'Edit Event',
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: const Color.fromARGB(255, 58, 2, 80),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Edit Event'),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 58, 2, 80),
-              Color.fromARGB(255, 219, 144, 5),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Event Name',
-                labelStyle: const TextStyle(color: Colors.white),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.9),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
+              decoration: const InputDecoration(labelText: 'Event Name'),
             ),
-            const SizedBox(height: 16.0),
+            TextField(
+              controller: _descriptionController,
+              decoration: const InputDecoration(labelText: 'Description'),
+            ),
+            TextField(
+              controller: _locationController,
+              decoration: const InputDecoration(labelText: 'Location'),
+            ),
             TextField(
               controller: _dateController,
-              decoration: InputDecoration(
-                labelText: 'Event Date',
-                labelStyle: const TextStyle(color: Colors.white),
-                filled: true,
-                fillColor: Colors.white.withOpacity(0.9),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              readOnly: true,
-              onTap: () async {
-                DateTime? selectedDate = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime(2100),
-                );
-
-                if (selectedDate != null) {
-                  _dateController.text =
-                  "${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}";
-                }
-              },
+              decoration: const InputDecoration(labelText: 'Date (YYYY-MM-DD)'),
             ),
-            const SizedBox(height: 16.0),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: saveEvent,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.amber,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              child: Text(
-                widget.existingEvent == null ? 'Create Event' : 'Save Changes',
-                style: const TextStyle(fontSize: 16.0),
-              ),
+              child: const Text('Save Event'),
             ),
           ],
         ),
