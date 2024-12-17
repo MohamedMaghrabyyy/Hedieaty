@@ -227,4 +227,34 @@ class FirestoreService {
         .map((doc) => PledgeModel.fromMap(doc.data()))
         .toList());
   }
+  // Delete event and all associated gifts based on eventId
+  Future<void> deleteEventAndGifts(String? eventId) async {
+    try {
+      // Start a batch operation to delete the gifts and the event atomically
+      WriteBatch batch = _firestore.batch();
+
+      // Reference to the gifts collection
+      final giftCollection = _firestore.collection('gifts');
+
+      // Fetch all the gifts associated with this eventId
+      final giftSnapshot = await giftCollection.where('eventId', isEqualTo: eventId).get();
+
+      // Add delete operations for each gift document to the batch
+      for (var giftDoc in giftSnapshot.docs) {
+        batch.delete(giftDoc.reference);  // Deleting each gift document
+      }
+
+      // After deleting the gifts, delete the event itself
+      batch.delete(_firestore.collection('events').doc(eventId));  // Deleting the event document
+
+      // Commit the batch operation to Firestore
+      await batch.commit();
+
+      print("Event and associated gifts deleted successfully.");
+    } catch (e) {
+      print("Error deleting event and gifts: $e");
+      throw Exception("Failed to delete event and gifts.");
+    }
+  }
+
 }

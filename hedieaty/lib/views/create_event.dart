@@ -150,7 +150,15 @@ class _CreateEventPageState extends State<CreateEventPage> {
         userId: widget.userId, // Access userId through widget
       );
 
-      _firestoreService.createEvent(event); // Firestore handles event ID generation
+      _firestoreService.createEvent(event).then((_) {
+        // Once the event is successfully created, return to the event list page
+        Navigator.pop(context);
+      }).catchError((error) {
+        // Handle any error in creating event
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to create event.')),
+        );
+      });
     }
   }
 }

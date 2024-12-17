@@ -3,18 +3,44 @@ import 'package:hedieaty/models/gift_model.dart';
 import 'package:hedieaty/services/firestore_service.dart';
 import 'package:hedieaty/views/edit_gift.dart';
 import 'package:hedieaty/views/create_gift.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class GiftListPage extends StatelessWidget {
+class GiftListPage extends StatefulWidget {
   final String? eventId;
 
   const GiftListPage({Key? key, required this.eventId}) : super(key: key);
+
+  @override
+  _GiftListPageState createState() => _GiftListPageState();
+}
+
+class _GiftListPageState extends State<GiftListPage> {
+  late Stream<List<GiftModel>> _giftsStream;
+  String? eventOwnerId; // Variable to store the event owner ID
+
+  @override
+  void initState() {
+    super.initState();
+    _giftsStream = FirestoreService().streamGiftsForEvent(widget.eventId);
+    _fetchEventOwner(widget.eventId); // Fetch the event owner during initialization
+  }
+
+  // Fetch event owner to determine if the current user is the owner
+  Future<void> _fetchEventOwner(String? eventId) async {
+    if (eventId == null) return;
+
+    final event = await FirestoreService().getEventById(eventId);
+    setState(() {
+      eventOwnerId = event?.userId; // Assuming the event has an ownerId field
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: FutureBuilder<String>(
-          future: _fetchEventName(eventId),
+          future: _fetchEventName(widget.eventId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Text('Loading...');
@@ -41,48 +67,44 @@ class GiftListPage extends StatelessWidget {
           ),
         ),
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: StreamBuilder<List<GiftModel>>(
-                stream: _fetchGiftsForEvent(eventId),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-                  final gifts = snapshot.data ?? [];
+        child: StreamBuilder<List<GiftModel>>(
+          stream: _giftsStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            final gifts = snapshot.data ?? [];
 
-                  if (gifts.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'No gifts found for this event.',
-                        style: TextStyle(color: Colors.white, fontSize: 25),
-                      ),
-                    );
-                  }
+            if (gifts.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No gifts found for this event.',
+                  style: TextStyle(color: Colors.white, fontSize: 25),
+                ),
+              );
+            }
 
-                  return ListView.builder(
-                    itemCount: gifts.length,
-                    itemBuilder: (context, index) {
-                      final gift = gifts[index];
-                      return _buildGiftCard(context, gift);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
+            return ListView.builder(
+              itemCount: gifts.length,
+              itemBuilder: (context, index) {
+                final gift = gifts[index];
+                return _buildGiftCard(context, gift);
+              },
+            );
+          },
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      // Only show the Floating Action Button if the current user is the event owner
+      floatingActionButton: eventOwnerId == FirebaseAuth.instance.currentUser?.uid
+          ? FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => CreateGiftPage(eventId: eventId),
+              builder: (context) => CreateGiftPage(eventId: widget.eventId),
             ),
           );
         },
@@ -90,7 +112,8 @@ class GiftListPage extends StatelessWidget {
         label: const Text('Add Gift'),
         backgroundColor: Colors.amber,
         foregroundColor: Colors.black,
-      ),
+      )
+          : null, // Hide the button if the user is not the owner
     );
   }
 
@@ -101,9 +124,9 @@ class GiftListPage extends StatelessWidget {
     Color cardColor = Colors.grey[200]!;
 
     if (isPurchased) {
-      cardColor = Colors.green[100]!;
+      cardColor = Colors.green[100]!; // Highlight purchased gifts in green
     } else if (isPledged) {
-      cardColor = Colors.red[100]!;
+      cardColor = Colors.red[100]!; // Highlight pledged gifts in red
     }
 
     return Card(
@@ -118,7 +141,7 @@ class GiftListPage extends StatelessWidget {
           gift.name,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 26,
+            fontSize: 30,
             color: Color.fromARGB(255, 58, 2, 80),
           ),
         ),
@@ -127,10 +150,10 @@ class GiftListPage extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.category, color: Theme.of(context).primaryColor, size: 24),
-                const SizedBox(width: 8),
+                Icon(Icons.description, color: Theme.of(context).primaryColor, size: 30),
+                const SizedBox(width: 10),
                 Text(
-                  gift.category,
+                  gift.description,
                   style: const TextStyle(color: Colors.black87, fontSize: 20),
                 ),
               ],
@@ -141,7 +164,7 @@ class GiftListPage extends StatelessWidget {
                 Icon(Icons.attach_money, color: Theme.of(context).primaryColor, size: 24),
                 const SizedBox(width: 8),
                 Text(
-                  '\$${gift.price}',
+                  '${gift.price}',
                   style: const TextStyle(color: Colors.black87, fontSize: 20),
                 ),
               ],
@@ -156,11 +179,14 @@ class GiftListPage extends StatelessWidget {
   }
 
   Widget _buildActionButtons(BuildContext context, GiftModel gift) {
+    final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+    final bool isCreator = gift.userId == currentUserId;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (!gift.isPledged)
+        if (!gift.isPledged && !gift.isPurchased && !isCreator)
           ElevatedButton(
             onPressed: () => _updatePledgeStatus(context, gift.id, true),
             child: const Text('Pledge'),
@@ -171,20 +197,25 @@ class GiftListPage extends StatelessWidget {
               textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
             ),
-          )
-        else if (!gift.isPurchased)
+          ),
+        if (gift.isPledged && !gift.isPurchased && !isCreator)
           ElevatedButton(
+            onPressed: () => _updatePurchaseStatus(context, gift.id, true),
+            child: const Text('Purchase'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red[300],
+              backgroundColor: Colors.green[300],
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
             ),
-            onPressed: () => _updatePurchaseStatus(context, gift.id, true),
-            child: const Text('Purchase'),
           ),
-        if (!gift.isPledged)
+        if (gift.isPurchased)
+          const Text(
+            'Purchased',
+            style: TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        if (isCreator && !gift.isPledged)
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.amber),
             iconSize: 35,
@@ -197,7 +228,7 @@ class GiftListPage extends StatelessWidget {
               );
             },
           ),
-        if (!gift.isPledged)
+        if (isCreator && !gift.isPledged)
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.red),
             iconSize: 35,
@@ -218,16 +249,38 @@ class GiftListPage extends StatelessWidget {
     return event?.name ?? 'Event';
   }
 
-  Stream<List<GiftModel>> _fetchGiftsForEvent(String? eventId) {
-    return FirestoreService().streamGiftsForEvent(eventId);
-  }
-
   void _updatePledgeStatus(BuildContext context, String giftId, bool status) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (userId == null) {
+      return;
+    }
+
+    final gift = await FirestoreService().getGiftById(giftId);
+
+    if (gift == null) {
+      return;
+    }
+
+    if (gift.userId == userId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You cannot pledge your own gift.")),
+      );
+      return;
+    }
+
     await FirestoreService().updateGiftPledgeStatus(giftId, status);
+
+    if (status) {
+      await FirestoreService().pledgeGift(userId, giftId);
+    }
+
+    setState(() {}); // Refresh the UI after the change
   }
 
   void _updatePurchaseStatus(BuildContext context, String giftId, bool status) async {
     await FirestoreService().updateGiftPurchaseStatus(giftId, status);
+    setState(() {}); // Refresh the UI after the change
   }
 
   void _showGiftDetailsOverlay(BuildContext context, GiftModel gift) {

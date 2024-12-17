@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/models/gift_model.dart';
 import 'package:hedieaty/services/firestore_service.dart'; // Replace with your Firestore service class
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CreateGiftPage extends StatefulWidget {
   final String? eventId;
@@ -17,6 +18,7 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _categoryController = TextEditingController(); // For category input
+  final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
   Future<void> _saveGift() async {
     if (_formKey.currentState!.validate()) {
@@ -27,7 +29,7 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
           description: _descriptionController.text.trim(),
           category: _categoryController.text.trim(), // Category as string
           price: double.parse(_priceController.text.trim()),
-          userId: 'current_user_id', // Replace with the current user's ID
+          userId: currentUserId ?? '', // Use the current authenticated user's UID, or empty if not authenticated
           eventId: widget.eventId ?? '',
           isPledged: false, // Default value
           isPurchased: false, // Default value
