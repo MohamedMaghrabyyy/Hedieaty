@@ -80,6 +80,9 @@ class EventListPage extends StatelessWidget {
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(16),
+                    onTap: () {
+                      _showEventDetailsOverlay(context, event);
+                    },
                     title: Text(
                       event.name,
                       style: const TextStyle(
@@ -98,58 +101,35 @@ class EventListPage extends StatelessWidget {
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.amber),
                           onPressed: () {
-                            // Navigate to Edit Event Page with the event ID
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditEventPage(eventId: event.id),
-                              ),
-                            );
+                            if (event.userId == userId) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditEventPage(eventId: event.id),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('You are not authorized to edit this event.')),
+                              );
+                            }
                           },
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () async {
-                            // Implement the event delete functionality
-                            final confirmDelete = await showDialog<bool>(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog(
-                                  title: const Text('Delete Event'),
-                                  content: const Text('Are you sure you want to delete this event?'),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                      child: const Text('Delete'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-
-                            if (confirmDelete == true) {
-                              try {
-                                // Call FirestoreService to delete the event
-                                await FirestoreService().deleteEvent(event.id);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Event deleted successfully.')),
-                                );
-                              } catch (error) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Failed to delete event: $error')),
-                                );
-                              }
+                            if (event.userId == userId) {
+                              // Delete functionality...
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('You are not authorized to delete this event.')),
+                              );
                             }
                           },
                         ),
                         IconButton(
-                          icon: const Icon(Icons.arrow_forward, color: Colors.amber),
+                          icon: const Icon(Icons.card_giftcard, color: Colors.amber), // Replaced icon
                           onPressed: () {
-                            // Navigate to Gift List Page with event ID
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -160,7 +140,8 @@ class EventListPage extends StatelessWidget {
                         ),
                       ],
                     ),
-                  ),
+                  )
+
                 );
               },
             );
@@ -198,3 +179,98 @@ class EventListPage extends StatelessWidget {
     return FirestoreService().streamEventsForUser(userId); // Fetch events for userId
   }
 }
+void _showEventDetailsOverlay(BuildContext context, EventModel event) async {
+  // Fetch the name of the user who created the event
+  String createdByName = await FirestoreService().getUserNameById(event.userId);
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+        title: Center(
+          child: Text(
+            event.name,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+              color: Color.fromARGB(255, 58, 2, 80),
+            ),
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.calendar_today, color: Colors.amber),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    DateFormat('MMM dd, yyyy').format(event.date),
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 15),
+            Row(
+              children: [
+                const Icon(Icons.description, color: Colors.amber),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    event.description,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 15),
+            Row(
+              children: [
+                const Icon(Icons.location_pin, color: Colors.amber),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    event.location ?? 'N/A',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 15),
+            Row(
+              children: [
+                const Icon(Icons.person, color: Colors.amber),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Created By: $createdByName',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Close',
+                style: TextStyle(fontSize: 18, color: Colors.red),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+

@@ -17,9 +17,7 @@ class _EditGiftPageState extends State<EditGiftPage> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _priceController;
-
-  String _selectedCategory = '';
-  String _selectedStatus = '';
+  late TextEditingController _categoryController;
 
   @override
   void initState() {
@@ -27,8 +25,7 @@ class _EditGiftPageState extends State<EditGiftPage> {
     _nameController = TextEditingController(text: widget.gift.name);
     _descriptionController = TextEditingController(text: widget.gift.description);
     _priceController = TextEditingController(text: widget.gift.price.toString());
-    _selectedCategory = widget.gift.category;
-    _selectedStatus = widget.gift.status;
+    _categoryController = TextEditingController(text: widget.gift.category);
   }
 
   Future<void> _saveGift() async {
@@ -36,14 +33,15 @@ class _EditGiftPageState extends State<EditGiftPage> {
       try {
         // Create a new GiftModel instance with the updated fields
         final updatedGift = GiftModel(
-          id: widget.giftId, // Explicitly set the gift ID
+          id: widget.giftId,
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
-          category: _selectedCategory,
+          category: _categoryController.text.trim(),
           price: double.parse(_priceController.text.trim()),
-          status: _selectedStatus,
+          userId: widget.gift.userId, // Retain the original userId
+          eventId: widget.gift.eventId, // Retain the original eventId
           isPledged: widget.gift.isPledged,
-          eventId: widget.gift.eventId,
+          isPurchased: widget.gift.isPurchased,
         );
 
         // Update the gift in Firestore
@@ -62,31 +60,72 @@ class _EditGiftPageState extends State<EditGiftPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Gift')),
+      appBar: AppBar(
+        title: const Text(
+          'Edit Gift',
+          style: TextStyle(color: Colors.white, fontSize: 25),
+        ),
+        backgroundColor: const Color.fromARGB(255, 80, 45, 140),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
+              // Gift Name Input with improved styling
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Gift Name'),
+                decoration: InputDecoration(
+                  labelText: 'Gift Name',
+                  labelStyle: const TextStyle(color: Colors.black87),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                ),
                 validator: (value) =>
                 value == null || value.isEmpty ? 'Please enter a name' : null,
                 readOnly: widget.gift.isPledged, // Prevent edits for pledged gifts
+                style: const TextStyle(fontSize: 18),
               ),
+              const SizedBox(height: 16), // Space between fields
+
+              // Gift Description Input with improved styling
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Description'),
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  labelStyle: const TextStyle(color: Colors.black87),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                ),
                 validator: (value) =>
                 value == null || value.isEmpty ? 'Please enter a description' : null,
                 readOnly: widget.gift.isPledged,
+                maxLines: 3, // Allow multi-line input for description
+                style: const TextStyle(fontSize: 18),
               ),
+              const SizedBox(height: 16), // Space between fields
+
+              // Gift Price Input with improved styling
               TextFormField(
                 controller: _priceController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Price'),
+                decoration: InputDecoration(
+                  labelText: 'Price',
+                  labelStyle: const TextStyle(color: Colors.black87),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a price';
@@ -97,45 +136,45 @@ class _EditGiftPageState extends State<EditGiftPage> {
                   return null;
                 },
                 readOnly: widget.gift.isPledged,
+                style: const TextStyle(fontSize: 18),
               ),
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: ['Electronics', 'Books', 'Clothing', 'Toys']
-                    .map((category) => DropdownMenuItem(
-                  value: category,
-                  child: Text(category),
-                ))
-                    .toList(),
-                onChanged: widget.gift.isPledged
-                    ? null // Disable dropdown for pledged gifts
-                    : (value) {
-                  setState(() {
-                    _selectedCategory = value!;
-                  });
-                },
+              const SizedBox(height: 16), // Space between fields
+
+              // Category Input with improved styling
+              TextFormField(
+                controller: _categoryController,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  labelStyle: const TextStyle(color: Colors.black87),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                ),
+                validator: (value) =>
+                value == null || value.isEmpty ? 'Please enter a category' : null,
+                readOnly: widget.gift.isPledged,
+                style: const TextStyle(fontSize: 18),
               ),
-              DropdownButtonFormField<String>(
-                value: _selectedStatus,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: ['available', 'pledged']
-                    .map((status) => DropdownMenuItem(
-                  value: status,
-                  child: Text(status),
-                ))
-                    .toList(),
-                onChanged: widget.gift.isPledged
-                    ? null
-                    : (value) {
-                  setState(() {
-                    _selectedStatus = value!;
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: widget.gift.isPledged ? null : _saveGift,
-                child: const Text('Save Gift'),
+              const SizedBox(height: 20), // Space before the button
+
+              // Save Button with improved styling
+              Center( // Center the button horizontally
+                child: ElevatedButton(
+                  onPressed: widget.gift.isPledged ? null : _saveGift,
+                  child: const Text(
+                    'Save Gift',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0),
+                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    minimumSize: const Size(200, 50),
+                  ),
+                ),
               ),
             ],
           ),

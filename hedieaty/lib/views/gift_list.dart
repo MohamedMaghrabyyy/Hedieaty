@@ -5,33 +5,29 @@ import 'package:hedieaty/views/edit_gift.dart';
 import 'package:hedieaty/views/create_gift.dart';
 
 class GiftListPage extends StatelessWidget {
-  final String? eventId; // Event ID to filter gifts
+  final String? eventId;
 
-  GiftListPage({required this.eventId});
+  const GiftListPage({Key? key, required this.eventId}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: FutureBuilder<String>(
-          future: _fetchEventName(eventId), // Fetch event name based on eventId
+          future: _fetchEventName(eventId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Text('Loading...'); // Show loading text until event name is fetched
+              return const Text('Loading...');
             }
             if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
+              return const Text('Error loading event');
             }
-            if (snapshot.hasData) {
-              return Text('${snapshot.data}\'s Gifts'); // Display event name
-            }
-            return const Text('Event Not Found');
+            return Text('${snapshot.data ?? 'Event'}\'s Gifts');
           },
         ),
         backgroundColor: const Color.fromARGB(255, 58, 2, 80),
         iconTheme: const IconThemeData(color: Colors.white),
-        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 25), // Set text color to white
-
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 25),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -45,116 +41,40 @@ class GiftListPage extends StatelessWidget {
           ),
         ),
         padding: const EdgeInsets.all(16.0),
-        child: StreamBuilder<List<GiftModel>>(
-          stream: _fetchGiftsForEvent(eventId), // Stream gifts for the given event ID
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            }
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(
-                child: Text(
-                  'No gifts found for this event.',
-                  style: TextStyle(color: Colors.white, fontSize: 25),
-                ),
-              );
-            }
+        child: Column(
+          children: [
+            Expanded(
+              child: StreamBuilder<List<GiftModel>>(
+                stream: _fetchGiftsForEvent(eventId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  final gifts = snapshot.data ?? [];
 
-            final gifts = snapshot.data!;
-
-            return ListView.builder(
-              itemCount: gifts.length,
-              itemBuilder: (context, index) {
-                final gift = gifts[index];
-
-                return Card(
-                  color: Colors.grey[200],
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15.0),
-                  ),
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    title: Text(
-                      gift.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Color.fromARGB(255, 58, 2, 80),
+                  if (gifts.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No gifts found for this event.',
+                        style: TextStyle(color: Colors.white, fontSize: 25),
                       ),
-                    ),
-                    subtitle: Text(
-                      'Category: ${gift.category}\nStatus: ${gift.status}',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Edit button
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.amber),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EditGiftPage(
-                                  giftId: gift.id, // Pass giftId
-                                  gift: gift,      // Pass the GiftModel object
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        // Delete button
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () async {
-                            final confirmDelete = await showDialog<bool>(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog(
-                                  title: const Text('Delete Gift'),
-                                  content: const Text('Are you sure you want to delete this gift?'),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                      child: const Text('Delete'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
+                    );
+                  }
 
-                            if (confirmDelete == true) {
-                              try {
-                                // Call FirestoreService to delete the gift
-                                await FirestoreService().deleteGift(gift.id);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Gift deleted successfully.')),
-                                );
-                              } catch (error) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Failed to delete gift: $error')),
-                                );
-                              }
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          },
+                  return ListView.builder(
+                    itemCount: gifts.length,
+                    itemBuilder: (context, index) {
+                      final gift = gifts[index];
+                      return _buildGiftCard(context, gift);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -162,7 +82,7 @@ class GiftListPage extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => CreateGiftPage(eventId: eventId), // Pass the eventId to CreateGiftPage
+              builder: (context) => CreateGiftPage(eventId: eventId),
             ),
           );
         },
@@ -174,13 +94,192 @@ class GiftListPage extends StatelessWidget {
     );
   }
 
-  Stream<List<GiftModel>> _fetchGiftsForEvent(String? eventId) {
-    return FirestoreService().streamGiftsForEvent(eventId); // Fetch gifts for a specific event
+  Widget _buildGiftCard(BuildContext context, GiftModel gift) {
+    final bool isPledged = gift.isPledged;
+    final bool isPurchased = gift.isPurchased;
+
+    Color cardColor = Colors.grey[200]!;
+
+    if (isPurchased) {
+      cardColor = Colors.green[100]!;
+    } else if (isPledged) {
+      cardColor = Colors.red[100]!;
+    }
+
+    return Card(
+      color: cardColor,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        onTap: () => _showGiftDetailsOverlay(context, gift),
+        title: Text(
+          gift.name,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 26,
+            color: Color.fromARGB(255, 58, 2, 80),
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.category, color: Theme.of(context).primaryColor, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  gift.category,
+                  style: const TextStyle(color: Colors.black87, fontSize: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.attach_money, color: Theme.of(context).primaryColor, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  '\$${gift.price}',
+                  style: const TextStyle(color: Colors.black87, fontSize: 20),
+                ),
+              ],
+            ),
+          ],
+        ),
+        trailing: _buildActionButtons(context, gift),
+        isThreeLine: true,
+        dense: false,
+      ),
+    );
   }
 
-  // Fetch event name by eventId
+  Widget _buildActionButtons(BuildContext context, GiftModel gift) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        if (!gift.isPledged)
+          ElevatedButton(
+            onPressed: () => _updatePledgeStatus(context, gift.id, true),
+            child: const Text('Pledge'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple[300],
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+            ),
+          )
+        else if (!gift.isPurchased)
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[300],
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+            ),
+            onPressed: () => _updatePurchaseStatus(context, gift.id, true),
+            child: const Text('Purchase'),
+          ),
+        if (!gift.isPledged)
+          IconButton(
+            icon: const Icon(Icons.edit, color: Colors.amber),
+            iconSize: 35,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditGiftPage(giftId: gift.id, gift: gift),
+                ),
+              );
+            },
+          ),
+        if (!gift.isPledged)
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            iconSize: 35,
+            onPressed: () async {
+              await FirestoreService().deleteGift(gift.id);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Gift deleted successfully.')),
+              );
+            },
+          ),
+      ],
+    );
+  }
+
   Future<String> _fetchEventName(String? eventId) async {
-    final event = await FirestoreService().getEventById(eventId); // FirestoreService to fetch event by id
-    return event?.name ?? 'Event'; // Return event name or 'Event' if not found
+    if (eventId == null) return 'Event';
+    final event = await FirestoreService().getEventById(eventId);
+    return event?.name ?? 'Event';
+  }
+
+  Stream<List<GiftModel>> _fetchGiftsForEvent(String? eventId) {
+    return FirestoreService().streamGiftsForEvent(eventId);
+  }
+
+  void _updatePledgeStatus(BuildContext context, String giftId, bool status) async {
+    await FirestoreService().updateGiftPledgeStatus(giftId, status);
+  }
+
+  void _updatePurchaseStatus(BuildContext context, String giftId, bool status) async {
+    await FirestoreService().updateGiftPurchaseStatus(giftId, status);
+  }
+
+  void _showGiftDetailsOverlay(BuildContext context, GiftModel gift) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Center(
+            child: Text(
+              gift.name,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.category, color: Theme.of(context).primaryColor),
+                title: Text(gift.category),
+              ),
+              ListTile(
+                leading: Icon(Icons.description, color: Theme.of(context).primaryColor),
+                title: Text(gift.description),
+              ),
+              ListTile(
+                leading: Icon(Icons.attach_money, color: Theme.of(context).primaryColor),
+                title: Text('\$${gift.price}'),
+              ),
+              ListTile(
+                leading: Icon(
+                  gift.isPledged ? Icons.check_circle : Icons.cancel,
+                  color: gift.isPledged ? Colors.green : Colors.red,
+                ),
+                title: Text('Pledged: ${gift.isPledged ? 'Yes' : 'No'}'),
+              ),
+              ListTile(
+                leading: Icon(
+                  gift.isPurchased ? Icons.check_circle : Icons.cancel,
+                  color: gift.isPurchased ? Colors.green : Colors.red,
+                ),
+                title: Text('Purchased: ${gift.isPurchased ? 'Yes' : 'No'}'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

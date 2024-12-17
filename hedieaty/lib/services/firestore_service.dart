@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hedieaty/models/user_model.dart';
 import 'package:hedieaty/models/event_model.dart';
 import 'package:hedieaty/models/gift_model.dart';
+import 'package:hedieaty/models/pledge_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class FirestoreService {
@@ -153,28 +154,77 @@ class FirestoreService {
   }
 
   Stream<List<GiftModel>> streamGiftsForEvent(String? eventId) {
-    return FirebaseFirestore.instance
+    return _firestore
         .collection('gifts')
         .where('eventId', isEqualTo: eventId)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) {
-      return GiftModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      return GiftModel.fromMap(doc.data() as Map<String, dynamic>, id: doc.id);
     }).toList());
   }
 
+
   Future<GiftModel?> getGiftById(String giftId) async {
-    final doc = await FirebaseFirestore.instance.collection('gifts').doc(giftId).get();
+    final doc = await _firestore.collection('gifts').doc(giftId).get();
     if (doc.exists) {
-      return GiftModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      return GiftModel.fromMap(doc.data() as Map<String, dynamic>, id: doc.id);
     }
     return null;
+  }
+
+
+
+  Future<void> updateGiftPledgeStatus(String giftId, bool isPledged) async {
+    await _firestore.collection('gifts').doc(giftId).update({'isPledged': isPledged});
+  }
+
+  Future<void> updateGiftPurchaseStatus(String giftId, bool isPurchased) async {
+    await _firestore.collection('gifts').doc(giftId).update({'isPurchased': isPurchased});
   }
 
   Future<void> updateGift(String giftId, Map<String, dynamic> updatedData) async {
     await FirebaseFirestore.instance.collection('gifts').doc(giftId).update(updatedData);
   }
 
+
   Future<void> deleteGift(String giftId) async {
     await FirebaseFirestore.instance.collection('gifts').doc(giftId).delete();
+  }
+  Future<String> getUserNameById(String userId) async {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    return userDoc.data()?['name'] ?? 'Unknown User';
+  }
+  // Add pledge to Firestore
+  Future<void> pledgeGift(String userId, String giftId) async {
+    final pledge = PledgeModel(userId: userId, giftId: giftId);
+    await _firestore.collection('pledges').add(pledge.toMap());
+  }
+
+  // Check if a user has already pledged a gift
+  Future<bool> isGiftPledgedByUser(String userId, String giftId) async {
+    final querySnapshot = await _firestore
+        .collection('pledges')
+        .where('userId', isEqualTo: userId)
+        .where('giftId', isEqualTo: giftId)
+        .get();
+
+    return querySnapshot.docs.isNotEmpty;
+  }
+
+  // Get the gift creator's userId
+  Future<String> getGiftCreatorId(String? giftId) async {
+    final giftDoc = await _firestore.collection('gifts').doc(giftId).get();
+    return giftDoc['userId']; // Assuming the 'userId' field stores the creator's ID
+  }
+
+  // Stream pledged gifts for a user
+  Stream<List<PledgeModel>> streamPledgesForGift(String giftId) {
+    return _firestore
+        .collection('pledges')
+        .where('giftId', isEqualTo: giftId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+        .map((doc) => PledgeModel.fromMap(doc.data()))
+        .toList());
   }
 }

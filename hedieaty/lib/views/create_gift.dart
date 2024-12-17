@@ -16,9 +16,7 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-
-  String _selectedCategory = 'Electronics';
-  String _selectedStatus = 'available';
+  final TextEditingController _categoryController = TextEditingController(); // For category input
 
   Future<void> _saveGift() async {
     if (_formKey.currentState!.validate()) {
@@ -27,11 +25,12 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
           id: DateTime.now().toString(),
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
-          category: _selectedCategory,
+          category: _categoryController.text.trim(), // Category as string
           price: double.parse(_priceController.text.trim()),
-          status: _selectedStatus,
-          isPledged: false,
-          eventId: widget.eventId,
+          userId: 'current_user_id', // Replace with the current user's ID
+          eventId: widget.eventId ?? '',
+          isPledged: false, // Default value
+          isPurchased: false, // Default value
         );
 
         // Save the gift to Firestore
@@ -50,31 +49,68 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Gift')),
+      appBar: AppBar(
+        title: const Text(
+          'Create Gift',
+          style: TextStyle(color: Colors.white, fontSize: 25),
+        ),
+        backgroundColor: const Color.fromARGB(255, 80, 45, 140),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
+              // Gift Name Input with improved styling
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Gift Name'),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Please enter a name'
-                    : null,
+                decoration: InputDecoration(
+                  labelText: 'Gift Name',
+                  labelStyle: const TextStyle(color: Colors.black87),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                ),
+                validator: (value) => value == null || value.isEmpty ? 'Please enter a name' : null,
+                style: const TextStyle(fontSize: 18),
               ),
+              const SizedBox(height: 16.0), // Space between fields
+
+              // Gift Description Input with improved styling
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Description'),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Please enter a description'
-                    : null,
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  labelStyle: const TextStyle(color: Colors.black87),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                ),
+                validator: (value) => value == null || value.isEmpty ? 'Please enter a description' : null,
+                maxLines: 3, // Allow multi-line input for description
+                style: const TextStyle(fontSize: 18),
               ),
+              const SizedBox(height: 16.0), // Space between fields
+
+              // Gift Price Input with improved styling
               TextFormField(
                 controller: _priceController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Price'),
+                decoration: InputDecoration(
+                  labelText: 'Price',
+                  labelStyle: const TextStyle(color: Colors.black87),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a price';
@@ -84,41 +120,43 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
                   }
                   return null;
                 },
+                style: const TextStyle(fontSize: 18),
               ),
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: ['Electronics', 'Books', 'Clothing', 'Toys']
-                    .map((category) => DropdownMenuItem(
-                  value: category,
-                  child: Text(category),
-                ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value!;
-                  });
-                },
+              const SizedBox(height: 16.0), // Space between fields
+
+              // Category Input with improved styling
+              TextFormField(
+                controller: _categoryController,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  labelStyle: const TextStyle(color: Colors.black87),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
+                ),
+                validator: (value) => value == null || value.isEmpty ? 'Please enter a category' : null,
+                style: const TextStyle(fontSize: 18),
               ),
-              DropdownButtonFormField<String>(
-                value: _selectedStatus,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: ['available', 'pledged']
-                    .map((status) => DropdownMenuItem(
-                  value: status,
-                  child: Text(status),
-                ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedStatus = value!;
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _saveGift,
-                child: const Text('Save Gift'),
+              const SizedBox(height: 20.0), // Space before button
+
+              // Save Button with improved styling
+              Center( // Center the button horizontally
+                child: ElevatedButton(
+                  onPressed: _saveGift,
+                  child: const Text(
+                    'Save Gift',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor, // Button background color
+                    foregroundColor: Colors.white, // Button text color
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0), // Increased padding
+                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    minimumSize: const Size(200, 50), // Ensures the button is bigger (width, height)
+                  ),
+                ),
               ),
             ],
           ),

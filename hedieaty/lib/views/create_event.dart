@@ -3,9 +3,8 @@ import 'package:hedieaty/models/event_model.dart';
 import 'package:hedieaty/services/firestore_service.dart';
 
 class CreateEventPage extends StatefulWidget {
-  final String userId; // Add userId as a final field
+  final String userId;
 
-  // Modify the constructor to accept userId
   const CreateEventPage({super.key, required this.userId});
 
   @override
@@ -25,10 +24,10 @@ class _CreateEventPageState extends State<CreateEventPage> {
       appBar: AppBar(
         title: const Text(
           'Create Event',
-          style: TextStyle(color: Colors.white), // Set text color to white
+          style: TextStyle(color: Colors.white, fontSize: 25),
         ),
-        backgroundColor: const Color.fromARGB(255, 58, 2, 80),
-        iconTheme: const IconThemeData(color: Colors.white), // Ensure icon color is white
+        backgroundColor: const Color.fromARGB(255, 80, 45, 140),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -36,31 +35,53 @@ class _CreateEventPageState extends State<CreateEventPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Event Name Input with improved styling
               TextField(
                 controller: _eventNameController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Event Name',
+                  labelStyle: const TextStyle(color: Colors.black87),
                   border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
                 ),
               ),
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 16.0), // Space between fields
+
+              // Event Description Input with improved styling
               TextField(
                 controller: _eventDescriptionController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Event Description',
+                  labelStyle: const TextStyle(color: Colors.black87),
                   border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
                 ),
-                maxLines: 3,
+                maxLines: 3, // Allow multiline for the description
               ),
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 16.0), // Space between fields
+
+              // Event Location Input with improved styling
               TextField(
                 controller: _eventLocationController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Event Location',
+                  labelStyle: const TextStyle(color: Colors.black87),
                   border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 12.0),
                 ),
               ),
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 16.0), // Space between fields
+
+              // Event Date Picker with improved styling
               GestureDetector(
                 onTap: _pickDate,
                 child: InputDecorator(
@@ -72,13 +93,31 @@ class _CreateEventPageState extends State<CreateEventPage> {
                     _selectedDate == null
                         ? 'Pick a date'
                         : '${_selectedDate!.toLocal()}'.split(' ')[0],
+                    style: TextStyle(
+                      fontSize: 16.0,
+                      color: _selectedDate == null ? Colors.grey : Colors.black87,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 16.0),
-              ElevatedButton(
-                onPressed: _saveEvent,
-                child: const Text('Create Event'),
+              const SizedBox(height: 16.0), // Space between fields
+
+              // Create Button with improved styling
+              Center( // Center the button horizontally
+                child: ElevatedButton(
+                  onPressed: _saveEvent,
+                  child: const Text(
+                    'Create Event',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 16.0), // Increased padding
+                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    minimumSize: const Size(200, 50), // Ensures the button is bigger (width, height)
+                  ),
+                ),
               ),
             ],
           ),
