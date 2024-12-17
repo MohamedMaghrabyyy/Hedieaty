@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/models/gift_model.dart';
+import 'package:hedieaty/models/user_model.dart';
 import 'package:hedieaty/services/firestore_service.dart';
 import 'package:hedieaty/views/edit_gift.dart';
 import 'package:hedieaty/views/create_gift.dart';
@@ -7,8 +8,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class GiftListPage extends StatefulWidget {
   final String? eventId;
+  final String? userId;
 
-  const GiftListPage({Key? key, required this.eventId}) : super(key: key);
+  const GiftListPage({Key? key, this.eventId, this.userId}) : super(key: key);
 
   @override
   _GiftListPageState createState() => _GiftListPageState();
@@ -16,22 +18,62 @@ class GiftListPage extends StatefulWidget {
 
 class _GiftListPageState extends State<GiftListPage> {
   late Stream<List<GiftModel>> _giftsStream;
-  String? eventOwnerId; // Variable to store the event owner ID
+  String? eventOwnerId;
+  String? username; // To store the fetched username
+  String? eventName; // To store the fetched event name
 
   @override
   void initState() {
     super.initState();
-    _giftsStream = FirestoreService().streamGiftsForEvent(widget.eventId);
-    _fetchEventOwner(widget.eventId); // Fetch the event owner during initialization
+    _initializeGiftStream();
+    if (widget.eventId != null) {
+      _fetchEventOwner(widget.eventId);
+      _fetchEventName(widget.eventId); // Fetch event name
+    }
+    if (widget.userId != null) {
+      _fetchUsername(widget.userId); // Fetch username for userId
+    }
   }
 
-  // Fetch event owner to determine if the current user is the owner
+  void _initializeGiftStream() {
+    if (widget.userId != null) {
+      _giftsStream = FirestoreService().streamGiftsForUser(widget.userId!);
+    } else if (widget.eventId != null) {
+      _giftsStream = FirestoreService().streamGiftsForEvent(widget.eventId!);
+    } else {
+      _giftsStream = Stream.value([]); // Empty stream if no filters provided
+    }
+  }
+
   Future<void> _fetchEventOwner(String? eventId) async {
     if (eventId == null) return;
 
     final event = await FirestoreService().getEventById(eventId);
     setState(() {
-      eventOwnerId = event?.userId; // Assuming the event has an ownerId field
+      eventOwnerId = event?.userId;
+    });
+  }
+
+  Future<void> _fetchUsername(String? userId) async {
+    if (userId == null) return;
+
+    // Fetch username using the Firestore service
+    final fetchedUsername = await FirestoreService().getUsernameById(userId);
+
+      // Update the state with the fetched username
+    setState(() {
+        username = fetchedUsername ?? 'Unknown User'; // Fallback if no username is found
+      });
+
+  }
+
+
+  Future<void> _fetchEventName(String? eventId) async {
+    if (eventId == null) return;
+
+    final event = await FirestoreService().getEventById(eventId);
+    setState(() {
+      eventName = event?.name; // Assuming 'name' is in EventModel
     });
   }
 
@@ -39,18 +81,7 @@ class _GiftListPageState extends State<GiftListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: FutureBuilder<String>(
-          future: _fetchEventName(widget.eventId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Text('Loading...');
-            }
-            if (snapshot.hasError) {
-              return const Text('Error loading event');
-            }
-            return Text('${snapshot.data ?? 'Event'}\'s Gifts');
-          },
-        ),
+        title: Text(_getAppBarTitle()),
         backgroundColor: const Color.fromARGB(255, 58, 2, 80),
         iconTheme: const IconThemeData(color: Colors.white),
         titleTextStyle: const TextStyle(color: Colors.white, fontSize: 25),
@@ -76,12 +107,13 @@ class _GiftListPageState extends State<GiftListPage> {
             if (snapshot.hasError) {
               return Center(child: Text('Error: ${snapshot.error}'));
             }
+
             final gifts = snapshot.data ?? [];
 
             if (gifts.isEmpty) {
               return const Center(
                 child: Text(
-                  'No gifts found for this event.',
+                  'No gifts found.',
                   style: TextStyle(color: Colors.white, fontSize: 25),
                 ),
               );
@@ -97,8 +129,7 @@ class _GiftListPageState extends State<GiftListPage> {
           },
         ),
       ),
-      // Only show the Floating Action Button if the current user is the event owner
-      floatingActionButton: eventOwnerId == FirebaseAuth.instance.currentUser?.uid
+      floatingActionButton: _showAddGiftButton()
           ? FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
@@ -113,8 +144,23 @@ class _GiftListPageState extends State<GiftListPage> {
         backgroundColor: Colors.amber,
         foregroundColor: Colors.black,
       )
-          : null, // Hide the button if the user is not the owner
+          : null,
     );
+  }
+
+  bool _showAddGiftButton() {
+    return widget.eventId != null &&
+        eventOwnerId == FirebaseAuth.instance.currentUser?.uid;
+  }
+
+  String _getAppBarTitle() {
+    if (widget.eventId != null && eventName != null) {
+      return "$eventName's Gifts";
+    } else if (widget.userId != null && username != null) {
+      return "$username's Gifts";
+    } else {
+      return "Gifts";
+    }
   }
 
   Widget _buildGiftCard(BuildContext context, GiftModel gift) {
@@ -215,15 +261,15 @@ class _GiftListPageState extends State<GiftListPage> {
             'Purchased',
             style: TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.bold),
           ),
-        if (isCreator && !gift.isPledged)
+        if (isCreator)
           IconButton(
-            icon: const Icon(Icons.edit, color: Colors.amber),
+            icon: const Icon(Icons.edit, color: Colors.blue),
             iconSize: 35,
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => EditGiftPage(giftId: gift.id, gift: gift),
+                  builder: (context) => EditGiftPage(gift: gift, giftId: gift.id,),
                 ),
               );
             },
@@ -232,55 +278,25 @@ class _GiftListPageState extends State<GiftListPage> {
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.red),
             iconSize: 35,
-            onPressed: () async {
-              await FirestoreService().deleteGift(gift.id);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Gift deleted successfully.')),
-              );
+            onPressed: () {
+              FirestoreService().deleteGift(gift.id);
             },
           ),
       ],
     );
   }
 
-  Future<String> _fetchEventName(String? eventId) async {
-    if (eventId == null) return 'Event';
-    final event = await FirestoreService().getEventById(eventId);
-    return event?.name ?? 'Event';
-  }
-
   void _updatePledgeStatus(BuildContext context, String giftId, bool status) async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-
-    if (userId == null) {
-      return;
-    }
-
-    final gift = await FirestoreService().getGiftById(giftId);
-
-    if (gift == null) {
-      return;
-    }
-
-    if (gift.userId == userId) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You cannot pledge your own gift.")),
-      );
-      return;
-    }
-
     await FirestoreService().updateGiftPledgeStatus(giftId, status);
-
-    if (status) {
-      await FirestoreService().pledgeGift(userId, giftId);
-    }
-
     setState(() {}); // Refresh the UI after the change
   }
 
-  void _updatePurchaseStatus(BuildContext context, String giftId, bool status) async {
+
+  Future<void> _updatePurchaseStatus(BuildContext context, String giftId, bool status) async {
     await FirestoreService().updateGiftPurchaseStatus(giftId, status);
-    setState(() {}); // Refresh the UI after the change
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Gift purchase status updated')),
+    );
   }
 
   void _showGiftDetailsOverlay(BuildContext context, GiftModel gift) {
@@ -298,15 +314,15 @@ class _GiftListPageState extends State<GiftListPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(Icons.category, color: Theme.of(context).primaryColor),
+                leading: Icon(Icons.category, color: Colors.amber),
                 title: Text(gift.category),
               ),
               ListTile(
-                leading: Icon(Icons.description, color: Theme.of(context).primaryColor),
+                leading: Icon(Icons.description, color: Colors.amber),
                 title: Text(gift.description),
               ),
               ListTile(
-                leading: Icon(Icons.attach_money, color: Theme.of(context).primaryColor),
+                leading: Icon(Icons.attach_money, color: Colors.amber),
                 title: Text('\$${gift.price}'),
               ),
               ListTile(

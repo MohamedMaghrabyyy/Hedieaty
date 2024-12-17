@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:hedieaty/views/gift_list.dart';
 import 'package:hedieaty/widgets/title_widget.dart';
 import 'package:hedieaty/views/event_list.dart'; // Import EventListPage
 import 'package:hedieaty/views/create_event.dart'; // Import CreateEventPage
@@ -16,6 +17,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   User? _user; // Add a variable to store the logged-in user
   String _userName = ''; // Variable to hold the user's name
+  String _searchQuery = ''; // Search query for filtering users
+  int _selectedIndex = 0; // Index for the BottomNavigationBar
+  bool _isViewingFriendsOnly = false; // State to toggle between all users and friends
 
   @override
   void initState() {
@@ -37,11 +41,18 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _toggleView() {
+    setState(() {
+      _isViewingFriendsOnly = !_isViewingFriendsOnly;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 80,
+        iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: const Color.fromARGB(255, 58, 2, 80),
         title: const TitleWidget(),
         actions: [
@@ -77,55 +88,21 @@ class _HomePageState extends State<HomePage> {
             Text(
               'Welcome, ${_userName.isNotEmpty ? _userName : 'User'}!',
               style: const TextStyle(
-                fontSize: 24,
+                fontSize: 27,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
             const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size.fromHeight(48),
-                    ),
-                    icon: const Icon(Icons.person_add),
-                    label: const Text("Add Friend"),
-                    onPressed: () {
-                      // Logic to add a new friend
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size.fromHeight(48),
-                    ),
-                    icon: const Icon(Icons.event),
-                    label: const Text(
-                      'My Events',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    onPressed: () {
-                      // Pass the userId to EventListPage to show the user's events
-                      if (_user != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EventListPage(userId: _user!.uid),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                ),
-              ],
+            // Toggle button to switch between friends and all users
+            ElevatedButton(
+              onPressed: _toggleView,
+              child: Text(_isViewingFriendsOnly ? 'View All Users' : 'View Friends Only'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                textStyle: const TextStyle(fontSize: 16),
+              ),
             ),
             const SizedBox(height: 20),
             TextField(
@@ -140,7 +117,9 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               onChanged: (value) {
-                // Logic for search functionality
+                setState(() {
+                  _searchQuery = value.toLowerCase(); // Filter users as you type
+                });
               },
             ),
             const SizedBox(height: 20),
@@ -158,12 +137,19 @@ class _HomePageState extends State<HomePage> {
                     return const Center(child: Text('No users found.'));
                   }
 
-                  // Fetch users and build the list
+                  // Filter users based on the search query and viewing option
+                  var users = snapshot.data!.docs
+                      .map((doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>))
+                      .where((user) =>
+                  user.name.toLowerCase().contains(_searchQuery) &&
+                      (user.uid != _user!.uid)) // Exclude current user
+                      .toList();
+
+                  // Build user list
                   return ListView.builder(
-                    itemCount: snapshot.data!.docs.length,
+                    itemCount: users.length,
                     itemBuilder: (context, index) {
-                      var doc = snapshot.data!.docs[index];
-                      var user = UserModel.fromMap(doc.data() as Map<String, dynamic>);
+                      var user = users[index];
                       return _buildUserCard(user);
                     },
                   );
@@ -173,8 +159,64 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index; // Update selected index for visual feedback
+          });
+
+          if (_user != null) {
+            if (index == 0) {
+              // My Events Page Navigation
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EventListPage(userId: _user!.uid),
+                ),
+              );
+            } else if (index == 1) {
+              // My Gifts Page Navigation
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GiftListPage(userId: _user!.uid),
+                ),
+              );
+            }
+          }
+        },
+        selectedItemColor: Colors.amber[300],  // Active icon and text color
+        unselectedItemColor: Colors.amber[300], // Inactive icon and text color
+        backgroundColor: const Color.fromARGB(255, 58, 2, 80), // Background color
+        type: BottomNavigationBarType.fixed,
+        iconSize: 30.0, // Increased size of icons
+        selectedLabelStyle: const TextStyle(
+          fontSize: 18, // Make label text bigger
+          fontWeight: FontWeight.bold, // Optional: make label bold
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 18, // Smaller text for unselected items
+          fontWeight: FontWeight.normal, // Optional: make label normal weight
+        ),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event, size: 40), // Increased icon size
+            label: 'My Events',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.card_giftcard, size: 40), // Increased icon size
+            label: 'My Gifts',
+          ),
+        ],
+      )
+
     );
   }
+}
+
+
+
 
   Widget _buildUserCard(UserModel user) {
     return StreamBuilder<QuerySnapshot>(
@@ -199,46 +241,63 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(15.0),
           ),
           margin: const EdgeInsets.symmetric(vertical: 8.0),
-          child: ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: Colors.white,
-              backgroundImage: AssetImage('assets/images/profile_icon.png'), // Default image
-            ),
-            title: Text(
-              user.name,
-              style: const TextStyle(
-                color: Color.fromARGB(255, 58, 2, 80),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            subtitle: Text(user.email),
-            trailing: eventCount > 0
-                ? CircleAvatar(
-              radius: 12,
-              backgroundColor: Colors.amber,
-              child: Text(
-                '$eventCount',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // User info section
+                Row(
+                  children: [
+                    const CircleAvatar(
+                      backgroundColor: Colors.white,
+                      backgroundImage: AssetImage('assets/images/profile_icon.png'), // Default image
+                      radius: 30.0, // Increase the size of the avatar
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.name,
+                          style: const TextStyle(
+                            color: Color.fromARGB(255, 58, 2, 80),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20.0, // Increased font size for name
+                          ),
+                        ),
+                        Text(
+                          user.email,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 16.0, // Increased font size for email
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-            )
-                : null,
-            onTap: () {
-              // Pass the userId to the EventListPage
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EventListPage(userId: user.uid),
-                ),
-              );
-            },
+                // Event count section
+                if (eventCount > 0)
+                  CircleAvatar(
+                    radius: 20, // Increased size of the circle on the right
+                    backgroundColor: Colors.amber,
+                    child: Text(
+                      '$eventCount',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         );
       },
     );
   }
+
 
 
   Future<int> _fetchEventCount(String userId) async {
@@ -250,4 +309,4 @@ class _HomePageState extends State<HomePage> {
 
     return snapshot.size; // Return the count of events
   }
-}
+

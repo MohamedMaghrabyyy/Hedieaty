@@ -33,7 +33,23 @@ class FirestoreService {
       return null;
     }
   }
+  // Function to get username by userId
+  Future<String?> getUsernameById(String userId) async {
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
+      // Check if the document exists and contains the name
+      if (userDoc.exists) {
+        final data = userDoc.data();
+        return data?['name']; // Returning the username from Firestore
+      } else {
+        return null; // If the user document doesn't exist
+      }
+    } catch (e) {
+      print("Error fetching username: $e");
+      return null;
+    }
+  }
   // Method to get user by ID
   Future<Map<String, dynamic>?> getUserById(String userId) async {
     try {
@@ -157,6 +173,15 @@ class FirestoreService {
     return _firestore
         .collection('gifts')
         .where('eventId', isEqualTo: eventId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+      return GiftModel.fromMap(doc.data() as Map<String, dynamic>, id: doc.id);
+    }).toList());
+  }
+  Stream<List<GiftModel>> streamGiftsForUser(String? userId) {
+    return _firestore
+        .collection('gifts')
+        .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) {
       return GiftModel.fromMap(doc.data() as Map<String, dynamic>, id: doc.id);
