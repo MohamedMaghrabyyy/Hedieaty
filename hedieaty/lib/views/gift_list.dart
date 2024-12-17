@@ -60,10 +60,10 @@ class _GiftListPageState extends State<GiftListPage> {
     // Fetch username using the Firestore service
     final fetchedUsername = await FirestoreService().getUsernameById(userId);
 
-      // Update the state with the fetched username
+    // Update the state with the fetched username
     setState(() {
-        username = fetchedUsername ?? 'Unknown User'; // Fallback if no username is found
-      });
+      username = fetchedUsername ?? 'Unknown User'; // Fallback if no username is found
+    });
 
   }
 
@@ -228,6 +228,21 @@ class _GiftListPageState extends State<GiftListPage> {
     final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
     final bool isCreator = gift.userId == currentUserId;
 
+    // If the gift is purchased, we hide the edit and delete buttons
+    if (gift.isPurchased) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text(
+            'Purchased',
+            style: TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ],
+      );
+    }
+
+    // If the gift is not purchased, show the buttons based on the pledge and purchase status
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -256,20 +271,15 @@ class _GiftListPageState extends State<GiftListPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
             ),
           ),
-        if (gift.isPurchased)
-          const Text(
-            'Purchased',
-            style: TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.bold),
-          ),
         if (isCreator)
           IconButton(
-            icon: const Icon(Icons.edit, color: Colors.blue),
+            icon: const Icon(Icons.edit, color: Colors.amber),
             iconSize: 35,
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => EditGiftPage(gift: gift, giftId: gift.id,),
+                  builder: (context) => EditGiftPage(gift: gift, giftId: gift.id),
                 ),
               );
             },
@@ -285,6 +295,7 @@ class _GiftListPageState extends State<GiftListPage> {
       ],
     );
   }
+
 
   void _updatePledgeStatus(BuildContext context, String giftId, bool status) async {
     await FirestoreService().updateGiftPledgeStatus(giftId, status);

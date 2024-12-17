@@ -3,11 +3,62 @@ import 'package:hedieaty/models/user_model.dart';
 import 'package:hedieaty/models/event_model.dart';
 import 'package:hedieaty/models/gift_model.dart';
 import 'package:hedieaty/models/pledge_model.dart';
+import 'package:hedieaty/models/friends_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance; // Initialize _auth here
+
+  Future<bool> areUsersFriends(String userId1, String userId2) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('friends')
+          .where('userId1', isEqualTo: userId1)
+          .where('userId2', isEqualTo: userId2)
+          .get();
+
+      // Check for direct friendship (userId1 -> userId2)
+      if (snapshot.docs.isNotEmpty) {
+        return true;
+      }
+
+      // Check for reverse friendship (userId2 -> userId1)
+      final reverseSnapshot = await FirebaseFirestore.instance
+          .collection('friends')
+          .where('userId1', isEqualTo: userId2)
+          .where('userId2', isEqualTo: userId1)
+          .get();
+
+      if (reverseSnapshot.docs.isNotEmpty) {
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      print("Error checking friendship: $e");
+      return false;
+    }
+  }
+
+
+  Future<void> addFriend(String userId1, String userId2) async {
+    // Create two entries to check friendship in both directions
+    final friendData = {
+      'userId1': userId1,
+      'userId2': userId2,
+    };
+
+    try {
+      await FirebaseFirestore.instance.collection('friends').add(friendData);
+      await FirebaseFirestore.instance.collection('friends').add({
+        'userId1': userId2,
+        'userId2': userId1,
+      });
+    } catch (e) {
+      print("Error adding friends: $e");
+    }
+  }
 
   // Save user data in Firestore with UID as document ID
   Future<void> saveUserData(UserModel userModel) async {
