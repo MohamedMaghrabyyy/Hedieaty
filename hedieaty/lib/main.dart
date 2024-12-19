@@ -41,7 +41,10 @@ class MyApp extends StatelessWidget {
           final eventId = ModalRoute.of(context)?.settings.arguments as String;
           return GiftListPage(eventId: eventId); // Pass eventId instead
         },
-        '/myPledgedGifts': (context) => const MyPledgedGiftsPage(),
+        '/myPledgedGifts': (context) {
+          final userId = ModalRoute.of(context)?.settings.arguments as String;
+          return MyPledgedGiftsPage(userId: userId); // Pass userId to MyPledgedGiftsPage
+        },
         '/profilePage': (context) => const ProfilePage(),
         '/createEvent': (context) {
           final userId = ModalRoute.of(context)?.settings.arguments as String;

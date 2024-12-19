@@ -110,11 +110,16 @@ class EventListPage extends StatelessWidget {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.description, color: Theme.of(context).primaryColor, size: 30),
+                            Icon(Icons.location_on, color: Theme.of(context).primaryColor, size: 30),
                             const SizedBox(width: 10),
-                            Text(
-                              event.description,
-                              style: const TextStyle(color: Colors.black87, fontSize: 20),
+                            // Adjust location text to wrap and avoid overflow
+                            Expanded(
+                              child: Text(
+                                event.location, // Replace description with location
+                                style: const TextStyle(color: Colors.black87, fontSize: 20),
+                                softWrap: true,
+                                overflow: TextOverflow.ellipsis, // Optionally handle text overflow
+                              ),
                             ),
                           ],
                         ),
@@ -186,6 +191,8 @@ class EventListPage extends StatelessWidget {
           : null,
     );
   }
+
+
 
   Future<String> _fetchUserName(String userId) async {
     try {

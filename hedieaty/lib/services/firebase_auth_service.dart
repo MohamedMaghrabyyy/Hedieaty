@@ -20,7 +20,6 @@ class FirebaseAuthService {
     }
   }
 
-  // Login method
   Future<User?> signIn(String email, String password) async {
     try {
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
@@ -28,11 +27,17 @@ class FirebaseAuthService {
         password: password,
       );
       return userCredential.user;
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
       print("Login error: $e");
-      return null;
+
+      // Rethrow the error so it can be handled in the calling function
+      throw e;
+    } catch (e) {
+      print("Unexpected error: $e");
+      throw Exception("An unexpected error occurred. Please try again.");
     }
   }
+
 
   // Log out method
   Future<void> signOut() async {

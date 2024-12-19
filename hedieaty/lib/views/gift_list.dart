@@ -249,7 +249,27 @@ class _GiftListPageState extends State<GiftListPage> {
       children: [
         if (!gift.isPledged && !gift.isPurchased && !isCreator)
           ElevatedButton(
-            onPressed: () => _updatePledgeStatus(context, gift.id, true),
+            onPressed: () async {
+              try {
+                final String userId = FirebaseAuth.instance.currentUser!.uid;
+
+                // First, create the pledge entry
+                await FirestoreService().createPledge(userId, gift.id);
+
+                // Then, update the gift's pledge status to true
+                await FirestoreService().updateGiftPledgeStatus(gift.id, true);
+
+                // Optionally, show a confirmation message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Pledge created successfully!')),
+                );
+              } catch (e) {
+                // Handle any errors
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: ${e.toString()}')),
+                );
+              }
+            },
             child: const Text('Pledge'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.purple[300],
@@ -271,7 +291,7 @@ class _GiftListPageState extends State<GiftListPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
             ),
           ),
-        if (isCreator)
+        if (isCreator && !gift.isPledged && !gift.isPurchased)
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.amber),
             iconSize: 35,
@@ -284,7 +304,7 @@ class _GiftListPageState extends State<GiftListPage> {
               );
             },
           ),
-        if (isCreator && !gift.isPledged)
+        if (isCreator && !gift.isPledged && !gift.isPurchased)
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.red),
             iconSize: 35,
@@ -295,6 +315,7 @@ class _GiftListPageState extends State<GiftListPage> {
       ],
     );
   }
+
 
 
   void _updatePledgeStatus(BuildContext context, String giftId, bool status) async {

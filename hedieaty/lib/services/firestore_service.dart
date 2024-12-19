@@ -10,6 +10,42 @@ class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance; // Initialize _auth here
 
+  // Get pledged gifts for the specified userId
+  Stream<List<GiftModel>> streamPledgedGiftsForUser(String userId) {
+    return _firestore
+        .collection('pledges')
+        .where('userId', isEqualTo: userId) // Search pledges by userId
+        .snapshots()
+        .asyncMap((querySnapshot) async {
+      List<GiftModel> pledgedGifts = [];
+
+      print('Query snapshot received: ${querySnapshot.docs.length} pledges found.');
+
+      // Fetch gift details for each pledge
+      for (var doc in querySnapshot.docs) {
+        PledgeModel pledge = PledgeModel.fromMap(doc.data());
+        print('Fetching gift details for pledge with giftId: ${pledge.giftId}');
+
+        // Get the gift details using the giftId from pledge
+        var giftDoc = await _firestore.collection('gifts').doc(pledge.giftId).get();
+
+        if (giftDoc.exists) {
+          GiftModel gift = GiftModel.fromMap(giftDoc.data()!, id: giftDoc.id);
+          pledgedGifts.add(gift);
+        } else {
+          print('Gift not found for giftId: ${pledge.giftId}');
+        }
+      }
+
+      print('Pledged gifts fetched: ${pledgedGifts.length}');
+      return pledgedGifts;
+    });
+  }
+
+
+
+
+
   Future<bool> areUsersFriends(String userId1, String userId2) async {
     try {
       final snapshot = await FirebaseFirestore.instance
@@ -40,25 +76,19 @@ class FirestoreService {
       return false;
     }
   }
-
-
   Future<void> addFriend(String userId1, String userId2) async {
-    // Create two entries to check friendship in both directions
-    final friendData = {
-      'userId1': userId1,
-      'userId2': userId2,
-    };
+    // Create two entries to check friendship in both directions using FriendModel
+    final friendData1 = FriendModel(userId1: userId1, userId2: userId2);
+    final friendData2 = FriendModel(userId1: userId2, userId2: userId1);
 
     try {
-      await FirebaseFirestore.instance.collection('friends').add(friendData);
-      await FirebaseFirestore.instance.collection('friends').add({
-        'userId1': userId2,
-        'userId2': userId1,
-      });
+      await FirebaseFirestore.instance.collection('friends').add(friendData1.toMap());
+      await FirebaseFirestore.instance.collection('friends').add(friendData2.toMap());
     } catch (e) {
       print("Error adding friends: $e");
     }
   }
+
 
   // Save user data in Firestore with UID as document ID
   Future<void> saveUserData(UserModel userModel) async {
@@ -249,15 +279,6 @@ class FirestoreService {
   }
 
 
-
-  Future<void> updateGiftPledgeStatus(String giftId, bool isPledged) async {
-    await _firestore.collection('gifts').doc(giftId).update({'isPledged': isPledged});
-  }
-
-  Future<void> updateGiftPurchaseStatus(String giftId, bool isPurchased) async {
-    await _firestore.collection('gifts').doc(giftId).update({'isPurchased': isPurchased});
-  }
-
   Future<void> updateGift(String giftId, Map<String, dynamic> updatedData) async {
     await FirebaseFirestore.instance.collection('gifts').doc(giftId).update(updatedData);
   }
@@ -270,10 +291,26 @@ class FirestoreService {
     final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
     return userDoc.data()?['name'] ?? 'Unknown User';
   }
-  // Add pledge to Firestore
-  Future<void> pledgeGift(String userId, String giftId) async {
-    final pledge = PledgeModel(userId: userId, giftId: giftId);
-    await _firestore.collection('pledges').add(pledge.toMap());
+
+  Future<void> createPledge(String userId, String giftId) async {
+    try {
+      await _firestore.collection('pledges').add({
+        'userId': userId,
+        'giftId': giftId,
+        'pledgedAt': FieldValue.serverTimestamp(),
+        // You can add other fields like due date or any other details as needed
+      });
+    } catch (e) {
+      throw Exception('Error creating pledge: $e');
+    }
+  }
+
+  Future<void> updateGiftPledgeStatus(String giftId, bool isPledged) async {
+    await _firestore.collection('gifts').doc(giftId).update({'isPledged': isPledged});
+  }
+
+  Future<void> updateGiftPurchaseStatus(String giftId, bool isPurchased) async {
+    await _firestore.collection('gifts').doc(giftId).update({'isPurchased': isPurchased});
   }
 
   // Check if a user has already pledged a gift

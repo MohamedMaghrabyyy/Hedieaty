@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/services/firestore_service.dart'; // Firestore service to update user data
+import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth to update password
 
 class ProfileDetailsPage extends StatefulWidget {
   const ProfileDetailsPage({Key? key}) : super(key: key);
@@ -11,7 +12,8 @@ class ProfileDetailsPage extends StatefulWidget {
 class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController(); // Password controller
+  final _passwordController = TextEditingController(); // New password controller
+  final _oldPasswordController = TextEditingController(); // Old password controller
 
   @override
   void initState() {
@@ -36,12 +38,12 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
   // Method to save updated user data (name, email, password)
   Future<void> _saveProfile() async {
     try {
-      // If password is provided, change the password
-      if (_passwordController.text.isNotEmpty) {
-        await FirestoreService().changePassword(_passwordController.text);
+      // If old password and new password are provided, change the password
+      if (_oldPasswordController.text.isNotEmpty && _passwordController.text.isNotEmpty) {
+        await _updatePassword(_oldPasswordController.text, _passwordController.text);
       }
 
-      // Update name and email
+      // Update name and email in Firestore (email is not editable in UI)
       await FirestoreService().updateUserProfile(
         _nameController.text,
         _emailController.text,
@@ -58,6 +60,32 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
     }
   }
 
+  // Method to update password in Firebase Auth
+  Future<void> _updatePassword(String oldPassword, String newPassword) async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw FirebaseAuthException(message: 'No user logged in.', code: '');
+      }
+
+      // Reauthenticate user first with the old password
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: oldPassword, // Verify the old password here
+      );
+
+      await user.reauthenticateWithCredential(credential);
+
+      // Now update the password
+      await user.updatePassword(newPassword);
+
+      print("Password updated successfully");
+    } on FirebaseAuthException catch (e) {
+      print("Error updating password: $e");
+      throw e;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,7 +95,9 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
         iconTheme: const IconThemeData(color: Colors.white),
         titleTextStyle: const TextStyle(color: Colors.white, fontSize: 25),
       ),
-      body: Padding(
+      // Ensure the body adjusts when the keyboard is visible
+      resizeToAvoidBottomInset: true,
+      body: SingleChildScrollView( // Make the body scrollable
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
@@ -86,14 +116,22 @@ class _ProfileDetailsPageState extends State<ProfileDetailsPage> {
               decoration: const InputDecoration(labelText: 'Name'),
             ),
             const SizedBox(height: 10),
+            // Make the email field non-editable
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email'),
+              enabled: false, // Disable editing
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _oldPasswordController,
+              obscureText: true, // Ensure old password is hidden
+              decoration: const InputDecoration(labelText: 'Old Password'),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: _passwordController,
-              obscureText: true, // Ensure password is hidden
+              obscureText: true, // Ensure new password is hidden
               decoration: const InputDecoration(labelText: 'New Password (Leave empty to keep current)'),
             ),
             const SizedBox(height: 20),

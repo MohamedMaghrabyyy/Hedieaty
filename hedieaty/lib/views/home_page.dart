@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:hedieaty/views/gift_list.dart';
 import 'package:hedieaty/widgets/title_widget.dart';
 import 'package:hedieaty/views/event_list.dart'; // Import EventListPage
-import 'package:hedieaty/views/create_event.dart'; // Import CreateEventPage
 import 'package:hedieaty/models/user_model.dart'; // UserModel
 import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
 
@@ -15,18 +14,18 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  User? _user; // Add a variable to store the logged-in user
-  String _userName = ''; // Variable to hold the user's name
-  String _searchQuery = ''; // Search query for filtering users
-  int _selectedIndex = 0; // Index for the BottomNavigationBar
-  bool _isViewingFriendsOnly = false; // State to toggle between all users and friends
+  User? _user;
+  String _userName = '';
+  String _searchQuery = '';
+  int _selectedIndex = 0;
+  bool _isViewingFriendsOnly = true;
 
   @override
   void initState() {
     super.initState();
-    _user = FirebaseAuth.instance.currentUser; // Fetch the logged-in user
+    _user = FirebaseAuth.instance.currentUser;
+
     if (_user != null) {
-      // Fetch the user's name from Firestore
       FirebaseFirestore.instance
           .collection('users')
           .doc(_user!.uid)
@@ -34,7 +33,7 @@ class _HomePageState extends State<HomePage> {
           .then((doc) {
         if (doc.exists) {
           setState(() {
-            _userName = doc['name']; // Assuming 'name' field exists in user document
+            _userName = doc['name'];
           });
         }
       });
@@ -47,45 +46,237 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<List<UserModel>> _fetchFriends() async {
+    final friendDocs = await FirebaseFirestore.instance
+        .collection('friends')
+        .where('userId1', isEqualTo: _user!.uid)
+        .get();
+
+    final friendIds = friendDocs.docs.map((doc) => doc['userId2']).toList();
+
+    if (friendIds.isEmpty) return []; // Handle no friends gracefully
+
+    final userDocs = await FirebaseFirestore.instance
+        .collection('users')
+        .where(FieldPath.documentId, whereIn: friendIds)
+        .get();
+
+    return userDocs.docs
+        .map((doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<UserModel>> _fetchAllUsers() async {
+    final allUsers = await FirebaseFirestore.instance.collection('users').get();
+    return allUsers.docs
+        .map((doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>))
+        .where((user) => user.uid != _user!.uid)
+        .toList();
+  }
+
+  Future<void> _addFriend(String userId1, String userId2) async {
+    try {
+      final friendData1 = {'userId1': userId1, 'userId2': userId2};
+      final friendData2 = {'userId1': userId2, 'userId2': userId1};
+
+      await FirebaseFirestore.instance.collection('friends').add(friendData1);
+      await FirebaseFirestore.instance.collection('friends').add(friendData2);
+    } catch (e) {
+      print("Error adding friends: $e");
+    }
+  }
+
+  Widget _buildToggleButton() {
+    return ElevatedButton(
+      onPressed: _toggleView,
+      style: ElevatedButton.styleFrom(
+        padding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+      child: Ink(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color.fromARGB(255, 219, 144, 5), Colors.amber],
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24.0,
+            vertical: 12.0,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                _isViewingFriendsOnly ? Icons.people : Icons.group_add,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                _isViewingFriendsOnly
+                    ? 'View All Users'
+                    : 'View Friends Only',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  TextField _buildSearchField() {
+    return TextField(
+      decoration: InputDecoration(
+        hintText: _isViewingFriendsOnly ? 'Search Friends...' : 'Search All Users...',
+        prefixIcon: const Icon(Icons.search, color: Colors.grey),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30.0),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
+      ),
+      onChanged: (query) {
+        setState(() {
+          _searchQuery = query.trim().toLowerCase();
+        });
+      },
+    );
+  }
+
+  Widget _buildUserCard(UserModel user) {
+    return FutureBuilder<QuerySnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('friends')
+          .where('userId1', isEqualTo: _user!.uid)
+          .where('userId2', isEqualTo: user.uid)
+          .get(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        // Check if user is a friend
+        final isFriend = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+
+        return Card(
+          elevation: 4.0,
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+          child: ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: Colors.grey,
+              child: Icon(Icons.person, color: Colors.white),
+            ),
+            title: Text(
+              user.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(user.email, overflow: TextOverflow.ellipsis),
+            trailing: _isViewingFriendsOnly // Show icons or add button based on the list
+                ? (isFriend
+                ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  onPressed: () {
+                    // Navigate to the user's event list
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            EventListPage(userId: user.uid),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.event, color: Colors.blue),
+                ),
+                IconButton(
+                  onPressed: () {
+                    // Navigate to the user's gift list
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            GiftListPage(userId: user.uid),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.card_giftcard, color: Colors.blue),
+                ),
+              ],
+            )
+                : SizedBox()) // No action for non-friends in Friends Only list
+                : (isFriend
+                ? Icon(Icons.check, color: Colors.green) // Tick icon for friends
+                : IconButton(
+              onPressed: () {
+                _addFriend(_user!.uid, user.uid);
+                setState(() {}); // Trigger a UI update to show the tick
+              },
+              icon: const Icon(Icons.add, color: Colors.blue),
+            )),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          toolbarHeight: 80,
-          iconTheme: const IconThemeData(color: Colors.white),
-          backgroundColor: const Color.fromARGB(255, 58, 2, 80),
-          title: const TitleWidget(),
-          actions: [
-            GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, '/profilePage');
-              },
-              child: const Padding(
-                padding: EdgeInsets.only(right: 16.0),
-                child: CircleAvatar(
-                  backgroundImage: AssetImage('assets/images/profile_icon.png'),
-                  radius: 18.0,
-                ),
+      appBar: AppBar(
+        toolbarHeight: 80,
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: const Color.fromARGB(255, 58, 2, 80),
+        title: const TitleWidget(),
+        actions: [
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, '/profilePage');
+            },
+            child: const Padding(
+              padding: EdgeInsets.only(right: 16.0),
+              child: CircleAvatar(
+                backgroundImage: AssetImage('assets/images/profile_icon.png'),
+                radius: 18.0,
               ),
             ),
-          ],
-        ),
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color.fromARGB(255, 58, 2, 80),
-                Color.fromARGB(255, 219, 144, 5),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
           ),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
+        ],
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color.fromARGB(255, 58, 2, 80),
+              Color.fromARGB(255, 219, 144, 5),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Greeting Section
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Text(
                 'Welcome, ${_userName.isNotEmpty ? _userName : 'User'}!',
                 style: const TextStyle(
                   fontSize: 27,
@@ -93,230 +284,120 @@ class _HomePageState extends State<HomePage> {
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 20),
-              // Toggle button to switch between friends and all users
-              ElevatedButton(
-                onPressed: _toggleView,
-                child: Text(_isViewingFriendsOnly ? 'View All Users' : 'View Friends Only'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  textStyle: const TextStyle(fontSize: 16),
+            ),
+
+            // Search Field
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: _buildSearchField(),
+            ),
+
+            // Toggle Button for Switching Views
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: _buildToggleButton(),
+            ),
+
+            // User List Label (Friends or All Users)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Text(
+                _isViewingFriendsOnly ? 'Friends:' : 'All users:',
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 20),
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search for a user...',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15.0),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value.toLowerCase(); // Filter users as you type
-                  });
+            ),
+
+            // User List
+            Expanded(
+              child: FutureBuilder<List<UserModel>>(
+                future: _isViewingFriendsOnly ? _fetchFriends() : _fetchAllUsers(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  var users = snapshot.data ?? [];
+                  if (_searchQuery.isNotEmpty) {
+                    users = users
+                        .where((user) => user.name.toLowerCase().contains(_searchQuery))
+                        .toList();
+                  }
+                  if (users.isEmpty) {
+                    return Center(
+                      child: Text(
+                        _isViewingFriendsOnly ? 'No friends found.' : 'No users found.',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    itemCount: users.length,
+                    itemBuilder: (context, index) {
+                      return _buildUserCard(users[index]);
+                    },
+                  );
                 },
               ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance.collection('users').snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return Center(child: Text('Error: ${snapshot.error}'));
-                    }
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(child: Text('No users found.'));
-                    }
-
-                    // Filter users based on the search query and viewing option
-                    var users = snapshot.data!.docs
-                        .map((doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>))
-                        .where((user) =>
-                    user.name.toLowerCase().contains(_searchQuery) &&
-                        (user.uid != _user!.uid)) // Exclude current user
-                        .toList();
-
-                    // Build user list
-                    return ListView.builder(
-                      itemCount: users.length,
-                      itemBuilder: (context, index) {
-                        var user = users[index];
-                        return _buildUserCard(user);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() {
-              _selectedIndex = index; // Update selected index for visual feedback
-            });
-
-            if (_user != null) {
-              if (index == 0) {
-                // My Events Page Navigation
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EventListPage(userId: _user!.uid),
-                  ),
-                );
-              } else if (index == 1) {
-                // My Gifts Page Navigation
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => GiftListPage(userId: _user!.uid),
-                  ),
-                );
-              }
-            }
-          },
-          selectedItemColor: Colors.amber[300],  // Active icon and text color
-          unselectedItemColor: Colors.amber[300], // Inactive icon and text color
-          backgroundColor: const Color.fromARGB(255, 58, 2, 80), // Background color
-          type: BottomNavigationBarType.fixed,
-          iconSize: 30.0, // Increased size of icons
-          selectedLabelStyle: const TextStyle(
-            fontSize: 18, // Make label text bigger
-            fontWeight: FontWeight.bold, // Optional: make label bold
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 18, // Smaller text for unselected items
-            fontWeight: FontWeight.normal, // Optional: make label normal weight
-          ),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.event, size: 40), // Increased icon size
-              label: 'My Events',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.card_giftcard, size: 40), // Increased icon size
-              label: 'My Gifts',
             ),
           ],
-        )
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
 
+          if (_user != null) {
+            if (index == 0) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EventListPage(userId: _user!.uid),
+                ),
+              );
+            } else if (index == 1) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GiftListPage(userId: _user!.uid),
+                ),
+              );
+            }
+          }
+        },
+        selectedItemColor: Colors.amber[300],
+        unselectedItemColor: Colors.amber[300],
+        backgroundColor: const Color.fromARGB(255, 58, 2, 80),
+        type: BottomNavigationBarType.fixed,
+        iconSize: 30.0,
+        selectedLabelStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: const TextStyle(fontSize: 18),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.event, size: 40),
+            label: 'My Events',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.card_giftcard, size: 40),
+            label: 'My Gifts',
+          ),
+        ],
+      ),
     );
   }
-}
 
 
-
-
-Widget _buildUserCard(UserModel user) {
-  return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
-        .collection('events')
-        .where('userId', isEqualTo: user.uid)
-        .snapshots(), // Use snapshots to listen for real-time changes
-    builder: (context, eventCountSnapshot) {
-      if (eventCountSnapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
-
-      if (eventCountSnapshot.hasError) {
-        return Center(child: Text('Error: ${eventCountSnapshot.error}'));
-      }
-
-      int eventCount = eventCountSnapshot.data?.docs.length ?? 0; // Get the count of events
-
-      return GestureDetector(
-        onTap: () {
-          // Navigate to the EventListPage for the selected user
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => EventListPage(userId: user.uid), // Pass the selected user's UID
-            ),
-          );
-        },
-        child: Card(
-          color: Colors.grey[200],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15.0),
-          ),
-          margin: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // User info section
-                Row(
-                  children: [
-                    const CircleAvatar(
-                      backgroundColor: Colors.white,
-                      backgroundImage: AssetImage('assets/images/profile_icon.png'), // Default image
-                      radius: 30.0, // Increase the size of the avatar
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user.name,
-                          style: const TextStyle(
-                            color: Color.fromARGB(255, 58, 2, 80),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20.0, // Increased font size for name
-                          ),
-                        ),
-                        Text(
-                          user.email,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 16.0, // Increased font size for email
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                // Event count section
-                if (eventCount > 0)
-                  CircleAvatar(
-                    radius: 20, // Increased size of the circle on the right
-                    backgroundColor: Colors.amber,
-                    child: Text(
-                      '$eventCount',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-  );
-}
-
-
-
-Future<int> _fetchEventCount(String userId) async {
-  // Fetch the count of events for the user
-  QuerySnapshot snapshot = await FirebaseFirestore.instance
-      .collection('events')
-      .where('userId', isEqualTo: userId) // Assuming events have a 'userId' field
-      .get();
-
-  return snapshot.size; // Return the count of events
 }

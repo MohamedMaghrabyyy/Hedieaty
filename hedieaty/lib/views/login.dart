@@ -17,7 +17,6 @@ class _LoginPageState extends State<LoginPage> {
   final FirebaseAuthService _authService = FirebaseAuthService(); // Instance of FirebaseAuthService
   String _errorMessage = ''; // To hold any error message
 
-  // Login method
   void _login() async {
     if (loginKey.currentState?.validate() ?? false) {
       try {
@@ -29,20 +28,26 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.pushReplacementNamed(context, '/home');
         }
       } catch (e) {
-        // If login fails, update the error message
-        setState(() {
-          _errorMessage = 'Invalid email or password. Please try again.';
-        });
-        // Optionally, display a Snackbar for instant feedback
+        // If login fails, show a SnackBar immediately with the error message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Login failed. Please check your credentials.'),
+            content: Text('Incorrect email or password. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
       }
+    } else {
+      // If the fields are not filled correctly, show a SnackBar with a different error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all fields correctly.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +87,11 @@ class _LoginPageState extends State<LoginPage> {
                         labelText: 'Enter your Email...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                          borderSide: BorderSide(color: Colors.amber),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                          borderSide: BorderSide(color: Colors.amber),
                         ),
                         filled: true,
                         fillColor: Colors.white,
@@ -101,6 +111,11 @@ class _LoginPageState extends State<LoginPage> {
                         labelText: 'Enter your password...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                          borderSide: BorderSide(color: Colors.amber),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                          borderSide: BorderSide(color: Colors.amber),
                         ),
                         hintText: 'Enter your password',
                         hintStyle: TextStyle(color: Color.fromARGB(255, 200, 200, 200)),
