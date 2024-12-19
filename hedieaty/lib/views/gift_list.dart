@@ -245,25 +245,63 @@ class _GiftListPageState extends State<GiftListPage> {
       future: _canPurchaseGift(currentUserId, gift),
       builder: (context, snapshot) {
         final canPurchase = snapshot.data ?? false;
+        final bool isPledger = gift.isPledged && canPurchase;
 
         return Row(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (!gift.isPurchased && !isCreator)
-              ElevatedButton(
-                onPressed: () async {
-                  try {
-                    if (gift.isPledged) {
-                      // Remove the pledge from the pledges table
-                      await FirestoreService().deletePledge(currentUserId, gift.id);
-                      // Update the gift's pledge status
-                      await FirestoreService().updateGiftPledgeStatus(gift.id, false);
+              if (isPledger)
+                ...[
+                  ElevatedButton(
+                    onPressed: () => _updatePurchaseStatus(context, gift.id, true),
+                    child: const Text('Purchase'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[300],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () async {
+                      try {
+                        // Remove the pledge from the pledges table
+                        await FirestoreService().deletePledge(currentUserId, gift.id);
+                        // Update the gift's pledge status
+                        await FirestoreService().updateGiftPledgeStatus(gift.id, false);
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Pledge removed!')),
-                      );
-                    } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Pledge removed!')),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: ${e.toString()}')),
+                        );
+                      }
+                    },
+                    child: const Text('Unpledge'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[300],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                    ),
+                  ),
+                ]
+              else if (gift.isPledged)
+                const Text(
+                  'Pledged',
+                  style: TextStyle(color: Colors.orange, fontSize: 16, fontWeight: FontWeight.bold),
+                )
+              else
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
                       // Add a pledge entry in the pledges table
                       await FirestoreService().createPledge(currentUserId, gift.id);
                       // Update the gift's pledge status
@@ -272,39 +310,21 @@ class _GiftListPageState extends State<GiftListPage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Pledged successfully!')),
                       );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: ${e.toString()}')),
+                      );
                     }
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: ${e.toString()}')),
-                    );
-                  }
-                },
-                child: Text(gift.isPledged ? 'Unpledge' : 'Pledge'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple[300],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                  },
+                  child: const Text('Pledge'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple[300],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                  ),
                 ),
-              ),
-            if (gift.isPledged && canPurchase)
-              ElevatedButton(
-                onPressed: () => _updatePurchaseStatus(context, gift.id, true),
-                child: const Text('Purchase'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[300],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-                ),
-              ),
-            if (gift.isPledged && !canPurchase)
-              const Text(
-                'Pledged',
-                style: TextStyle(color: Colors.orange, fontSize: 16, fontWeight: FontWeight.bold),
-              ),
             if (isCreator && !gift.isPledged && !gift.isPurchased)
               IconButton(
                 icon: const Icon(Icons.edit, color: Colors.amber),
@@ -331,6 +351,9 @@ class _GiftListPageState extends State<GiftListPage> {
       },
     );
   }
+
+
+
 
 
   Future<bool> _canPurchaseGift(String currentUserId, GiftModel gift) async {
