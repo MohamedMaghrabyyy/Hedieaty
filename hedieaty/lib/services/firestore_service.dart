@@ -4,11 +4,46 @@ import 'package:hedieaty/models/event_model.dart';
 import 'package:hedieaty/models/gift_model.dart';
 import 'package:hedieaty/models/pledge_model.dart';
 import 'package:hedieaty/models/friends_model.dart';
+import 'package:hedieaty/models/notifications_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance; // Initialize _auth here
+
+
+  // Method to create a notification
+  Future<void> createNotification(String userId, String text) async {
+    String notificationId = _firestore.collection('notifications').doc().id;
+
+    await _firestore.collection('notifications').doc(notificationId).set({
+      'userId': userId,
+      'text': text,
+    });
+  }
+
+  // Method to delete a notification (using String ID)
+  Future<void> deleteNotification(String notificationId) async {
+    await _firestore.collection('notifications').doc(notificationId).delete();
+  }
+
+  Stream<List<NotificationModel>> streamNotifications(String userId) {
+    return _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      final notifications = snapshot.docs
+          .map((doc) => NotificationModel.fromJson(doc.data(), doc.id))
+          .toList();
+
+      if (notifications.isEmpty) {
+        return [];
+      }
+      return notifications;
+    });
+  }
+
 
   // Get pledged gifts for the specified userId
   Stream<List<GiftModel>> streamPledgedGiftsForUser(String userId) {

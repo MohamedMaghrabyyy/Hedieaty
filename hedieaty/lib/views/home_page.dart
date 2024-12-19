@@ -4,7 +4,8 @@ import 'package:hedieaty/views/gift_list.dart';
 import 'package:hedieaty/widgets/title_widget.dart';
 import 'package:hedieaty/views/event_list.dart'; // Import EventListPage
 import 'package:hedieaty/models/user_model.dart'; // UserModel
-import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hedieaty/services/firestore_service.dart'; // Import FirebaseAuth
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -223,10 +224,27 @@ class _HomePageState extends State<HomePage> {
                 : (isFriend
                 ? Icon(Icons.check, color: Colors.green) // Tick icon for friends
                 : IconButton(
-              onPressed: () {
-                _addFriend(_user!.uid, user.uid);
-                setState(() {}); // Trigger a UI update to show the tick
+              onPressed: () async {
+                if (_user != null) {
+                  // Add friend to the user's friend list
+                  _addFriend(_user!.uid, user.uid);
+
+                  // Get current user's data from Firestore
+                  final currentUserData = await FirestoreService().getCurrentUserData();
+                  final String currentUserName = currentUserData['name'] ?? 'Someone';
+
+                  // Create a notification for the user
+                  await FirestoreService().createNotification(
+                    user.uid,
+                    '$currentUserName added you as a friend!',
+                  );
+
+                  setState(() {}); // Trigger UI update
+                }
               },
+
+
+
               icon: const Icon(Icons.add, color: Colors.blue),
             )),
           ),

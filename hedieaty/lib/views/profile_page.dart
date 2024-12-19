@@ -6,6 +6,8 @@ import 'package:hedieaty/views/event_list.dart';
 import 'package:hedieaty/views/my_pledged_gifts.dart';
 import 'package:hedieaty/views/event_list.dart';
 import 'package:hedieaty/views/profile_details.dart';
+import 'package:hedieaty/views/notifications_page.dart';
+
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -59,12 +61,19 @@ class ProfilePage extends StatelessWidget {
               },
             ),
             ListTile(
-              title: const Text('Notification Settings'),
+              title: const Text('Notification'),
               trailing: const Icon(Icons.notifications),
               onTap: () {
-                // Add navigation to notification settings
+                final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NotificationsPage(userId: currentUserId),
+                  ),
+                );
               },
             ),
+
             // "My Created Events" option
             ListTile(
               title: const Text('My Created Events'),

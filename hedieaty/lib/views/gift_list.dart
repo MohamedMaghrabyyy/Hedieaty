@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:hedieaty/models/gift_model.dart';
 import 'package:hedieaty/models/user_model.dart';
@@ -228,6 +229,28 @@ class _GiftListPageState extends State<GiftListPage> {
     final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
     final bool isCreator = gift.userId == currentUserId;
 
+    // Get the current user's name from Firestore
+    Future<String> getCurrentUserName(String currentUserId) async {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(currentUserId).get();
+      if (userDoc.exists) {
+        final data = userDoc.data(); // Safe access to data
+        return data != null ? data['name'] ?? 'Someone' : 'Someone';
+      } else {
+        return 'Someone';
+      }
+    }
+
+    // Get the gift owner's name from Firestore
+    Future<String> getGiftOwnerName(String userId) async {
+      final giftOwnerSnapshot = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      if (giftOwnerSnapshot.exists) {
+        final data = giftOwnerSnapshot.data();
+        return data != null ? data['name'] ?? 'User' : 'User';
+      } else {
+        return 'User';
+      }
+    }
+
     if (gift.isPurchased) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -255,7 +278,36 @@ class _GiftListPageState extends State<GiftListPage> {
               if (isPledger)
                 ...[
                   ElevatedButton(
-                    onPressed: () => _updatePurchaseStatus(context, gift.id, true),
+                    onPressed: () async {
+                      try {
+                        // Update purchase status to true
+                        await FirestoreService().updateGiftPurchaseStatus(gift.id, true);
+
+                        // Get current user's name for notification
+                        final currentUserName = await getCurrentUserName(currentUserId);
+                        final giftOwnerName = await getGiftOwnerName(gift.userId);
+
+                        // Notify the gift creator that the gift was purchased
+                        await FirestoreService().createNotification(
+                          gift.userId,
+                          'Your gift "${gift.name}" has been purchased by $currentUserName!',
+                        );
+
+                        // Notify the current user about the successful purchase
+                        await FirestoreService().createNotification(
+                          currentUserId,
+                          'You have purchased "${gift.name}" for $giftOwnerName.',
+                        );
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Gift purchased successfully!')),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: ${e.toString()}')),
+                        );
+                      }
+                    },
                     child: const Text('Purchase'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green[300],
@@ -265,6 +317,7 @@ class _GiftListPageState extends State<GiftListPage> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
                     ),
                   ),
+
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () async {
@@ -273,6 +326,20 @@ class _GiftListPageState extends State<GiftListPage> {
                         await FirestoreService().deletePledge(currentUserId, gift.id);
                         // Update the gift's pledge status
                         await FirestoreService().updateGiftPledgeStatus(gift.id, false);
+
+                        final giftOwnerName = await getGiftOwnerName(gift.userId);
+
+                        // Create a notification for the gift creator
+                        await FirestoreService().createNotification(
+                          gift.userId,
+                          'The pledge for your gift "${gift.name}" has been removed.',
+                        );
+
+                        // Notify the current user about the pledge removal
+                        await FirestoreService().createNotification(
+                          currentUserId,
+                          'You have removed your pledge for "${gift.name}".',
+                        );
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Pledge removed!')),
@@ -306,6 +373,22 @@ class _GiftListPageState extends State<GiftListPage> {
                       await FirestoreService().createPledge(currentUserId, gift.id);
                       // Update the gift's pledge status
                       await FirestoreService().updateGiftPledgeStatus(gift.id, true);
+
+                      // Get current user's name for notification
+                      final currentUserName = await getCurrentUserName(currentUserId);
+                      final giftOwnerName = await getGiftOwnerName(gift.userId);
+
+                      // Notify the gift creator that the gift has been pledged
+                      await FirestoreService().createNotification(
+                        gift.userId,
+                        '$currentUserName has pledged "${gift.name}" for you!',
+                      );
+
+                      // Notify the current user about the successful pledge
+                      await FirestoreService().createNotification(
+                        currentUserId,
+                        'You have pledged "${gift.name}" for $giftOwnerName.',
+                      );
 
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Pledged successfully!')),
@@ -351,8 +434,6 @@ class _GiftListPageState extends State<GiftListPage> {
       },
     );
   }
-
-
 
 
 
