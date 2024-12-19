@@ -228,7 +228,6 @@ class _GiftListPageState extends State<GiftListPage> {
     final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
     final bool isCreator = gift.userId == currentUserId;
 
-    // If the gift is purchased, we hide the edit and delete buttons
     if (gift.isPurchased) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -242,101 +241,105 @@ class _GiftListPageState extends State<GiftListPage> {
       );
     }
 
-    // If the gift is not purchased, show the buttons based on the pledge and purchase status
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        if (!gift.isPledged && !gift.isPurchased && !isCreator)
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                final String userId = FirebaseAuth.instance.currentUser!.uid;
+    return FutureBuilder<bool>(
+      future: _canPurchaseGift(currentUserId, gift),
+      builder: (context, snapshot) {
+        final canPurchase = snapshot.data ?? false;
 
-                // First, create the pledge entry
-                await FirestoreService().createPledge(userId, gift.id);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (!gift.isPurchased && !isCreator)
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    if (gift.isPledged) {
+                      // Remove the pledge from the pledges table
+                      await FirestoreService().deletePledge(currentUserId, gift.id);
+                      // Update the gift's pledge status
+                      await FirestoreService().updateGiftPledgeStatus(gift.id, false);
 
-                // Then, update the gift's pledge status to true
-                await FirestoreService().updateGiftPledgeStatus(gift.id, true);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Pledge removed!')),
+                      );
+                    } else {
+                      // Add a pledge entry in the pledges table
+                      await FirestoreService().createPledge(currentUserId, gift.id);
+                      // Update the gift's pledge status
+                      await FirestoreService().updateGiftPledgeStatus(gift.id, true);
 
-                // Optionally, show a confirmation message
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pledge created successfully!')),
-                );
-              } catch (e) {
-                // Handle any errors
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: ${e.toString()}')),
-                );
-              }
-            },
-            child: const Text('Pledge'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple[300],
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-            ),
-          ),
-        if (gift.isPledged && !gift.isPurchased)
-        // If it's pledged but not purchased
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Pledged successfully!')),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: ${e.toString()}')),
+                    );
+                  }
+                },
+                child: Text(gift.isPledged ? 'Unpledge' : 'Pledge'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple[300],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                ),
+              ),
+            if (gift.isPledged && canPurchase)
+              ElevatedButton(
+                onPressed: () => _updatePurchaseStatus(context, gift.id, true),
+                child: const Text('Purchase'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[300],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                ),
+              ),
+            if (gift.isPledged && !canPurchase)
               const Text(
                 'Pledged',
                 style: TextStyle(color: Colors.orange, fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              if (!isCreator)
-                ElevatedButton(
-                  onPressed: () => _updatePurchaseStatus(context, gift.id, true),
-                  child: const Text('Purchase'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[300],
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-                  ),
-                ),
-            ],
-          ),
-        if (gift.isPledged && gift.isPurchased)
-        // If it's purchased
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Purchased',
-                style: TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.bold),
+            if (isCreator && !gift.isPledged && !gift.isPurchased)
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.amber),
+                iconSize: 35,
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditGiftPage(gift: gift, giftId: gift.id),
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
-        if (isCreator && !gift.isPledged && !gift.isPurchased)
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.amber),
-            iconSize: 35,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => EditGiftPage(gift: gift, giftId: gift.id),
-                ),
-              );
-            },
-          ),
-        if (isCreator && !gift.isPledged && !gift.isPurchased)
-          IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
-            iconSize: 35,
-            onPressed: () {
-              FirestoreService().deleteGift(gift.id);
-            },
-          ),
-      ],
+            if (isCreator && !gift.isPledged && !gift.isPurchased)
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                iconSize: 35,
+                onPressed: () {
+                  FirestoreService().deleteGift(gift.id);
+                },
+              ),
+          ],
+        );
+      },
     );
   }
+
+
+  Future<bool> _canPurchaseGift(String currentUserId, GiftModel gift) async {
+    if (gift.userId == currentUserId) return true;
+
+    // Check if the current user has pledged this gift
+    return await FirestoreService().isGiftPledgedByUser(currentUserId, gift.id);
+  }
+
 
 
 

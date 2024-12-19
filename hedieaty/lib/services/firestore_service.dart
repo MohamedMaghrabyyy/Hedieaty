@@ -321,6 +321,17 @@ class FirestoreService {
 
     return null; // No pledge found
   }
+  Future<void> deletePledge(String userId, String giftId) async {
+    final pledgeDocs = await FirebaseFirestore.instance
+        .collection('pledges')
+        .where('userId', isEqualTo: userId)
+        .where('giftId', isEqualTo: giftId)
+        .get();
+
+    for (final doc in pledgeDocs.docs) {
+      await doc.reference.delete();
+    }
+  }
 
 
   Future<void> updateGiftPurchaseStatus(String giftId, bool isPurchased) async {
