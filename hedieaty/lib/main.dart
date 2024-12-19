@@ -11,8 +11,7 @@ import 'package:hedieaty/views/create_event.dart';
 import 'package:hedieaty/views/edit_event.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hedieaty/services/firebase_options.dart';
-import 'package:hedieaty/models/event_model.dart';
-import 'package:hedieaty/models/gift_model.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -82,6 +82,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 16.0),
                     TextFormField(
+                      key: const Key('emailField'),
                       controller: emailController,
                       decoration: const InputDecoration(
                         labelText: 'Enter your Email...',
@@ -106,6 +107,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 16.0),
                     TextFormField(
+                      key: const Key('passwordField'),
                       controller: passwordController,
                       decoration: const InputDecoration(
                         labelText: 'Enter your password...',
@@ -141,6 +143,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ElevatedButton(
+                      key: const Key('loginButton'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber,
                         foregroundColor: Colors.black,

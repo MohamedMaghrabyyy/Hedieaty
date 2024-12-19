@@ -153,6 +153,7 @@ class EventListPage extends StatelessWidget {
                           ),
                         ],
                         IconButton(
+                          key: const Key('event_gift_icon'),
                           icon: const Icon(Icons.card_giftcard, color: Colors.amber),
                           iconSize: 35,
                           onPressed: () {
@@ -175,6 +176,7 @@ class EventListPage extends StatelessWidget {
       ),
       floatingActionButton: currentUserId == userId
           ? FloatingActionButton.extended(
+        key: const Key('addEvent'),
         onPressed: () {
           Navigator.push(
             context,

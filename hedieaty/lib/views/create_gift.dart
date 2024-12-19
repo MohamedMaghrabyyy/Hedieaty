@@ -67,6 +67,7 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
             children: [
               // Gift Name Input with improved styling
               TextFormField(
+                key: const Key('gift_name_field'),
                 controller: _nameController,
                 decoration: InputDecoration(
                   labelText: 'Gift Name',
@@ -84,6 +85,7 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
 
               // Gift Description Input with improved styling
               TextFormField(
+                key: const Key('gift_description_field'),
                 controller: _descriptionController,
                 decoration: InputDecoration(
                   labelText: 'Description',
@@ -102,6 +104,7 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
 
               // Gift Price Input with improved styling
               TextFormField(
+                key: const Key('gift_price_field'),
                 controller: _priceController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
@@ -128,6 +131,7 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
 
               // Category Input with improved styling
               TextFormField(
+                key: const Key('gift_category_field'),
                 controller: _categoryController,
                 decoration: InputDecoration(
                   labelText: 'Category',
@@ -146,6 +150,7 @@ class _CreateGiftPageState extends State<CreateGiftPage> {
               // Save Button with improved styling
               Center( // Center the button horizontally
                 child: ElevatedButton(
+                  key: const Key('save_gift_button'),
                   onPressed: _saveGift,
                   child: const Text(
                     'Save Gift',

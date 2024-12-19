@@ -37,6 +37,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
             children: [
               // Event Name Input with improved styling
               TextField(
+                key: const Key('event_name_field'),
                 controller: _eventNameController,
                 decoration: InputDecoration(
                   labelText: 'Event Name',
@@ -52,6 +53,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
               // Event Description Input with improved styling
               TextField(
+                key: const Key('event_description_field'),
                 controller: _eventDescriptionController,
                 decoration: InputDecoration(
                   labelText: 'Event Description',
@@ -68,6 +70,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
               // Event Location Input with improved styling
               TextField(
+                key: const Key('event_location_field'),
                 controller: _eventLocationController,
                 decoration: InputDecoration(
                   labelText: 'Event Location',
@@ -83,6 +86,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
               // Event Date Picker with improved styling
               GestureDetector(
+                key: const Key('event_date_picker'),
                 onTap: _pickDate,
                 child: InputDecorator(
                   decoration: const InputDecoration(
@@ -105,6 +109,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
               // Create Button with improved styling
               Center( // Center the button horizontally
                 child: ElevatedButton(
+                  key: const Key('create_event_button'),
                   onPressed: _saveEvent,
                   child: const Text(
                     'Create Event',

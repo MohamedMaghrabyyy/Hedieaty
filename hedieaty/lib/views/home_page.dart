@@ -89,6 +89,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildToggleButton() {
     return ElevatedButton(
+      key: Key('toggleViewButton'),
       onPressed: _toggleView,
       style: ElevatedButton.styleFrom(
         padding: EdgeInsets.zero,
@@ -136,6 +137,7 @@ class _HomePageState extends State<HomePage> {
 
   TextField _buildSearchField() {
     return TextField(
+      key: Key('searchField'),
       decoration: InputDecoration(
         hintText: _isViewingFriendsOnly ? 'Search Friends...' : 'Search All Users...',
         prefixIcon: const Icon(Icons.search, color: Colors.grey),
@@ -177,6 +179,7 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(12.0),
           ),
           child: ListTile(
+            key: Key('userCard_${user.uid}'),
             leading: const CircleAvatar(
               backgroundColor: Colors.grey,
               child: Icon(Icons.person, color: Colors.white),
@@ -193,6 +196,7 @@ class _HomePageState extends State<HomePage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
+                  key: Key('eventIcon_${user.uid}'),
                   onPressed: () {
                     // Navigate to the user's event list
                     Navigator.push(
@@ -206,6 +210,7 @@ class _HomePageState extends State<HomePage> {
                   icon: const Icon(Icons.event, color: Colors.blue),
                 ),
                 IconButton(
+                  key: Key('giftIcon_${user.uid}'),
                   onPressed: () {
                     // Navigate to the user's gift list
                     Navigator.push(
@@ -224,6 +229,7 @@ class _HomePageState extends State<HomePage> {
                 : (isFriend
                 ? Icon(Icons.check, color: Colors.green) // Tick icon for friends
                 : IconButton(
+              key: Key('addFriendButton_${user.uid}'),
               onPressed: () async {
                 if (_user != null) {
                   // Add friend to the user's friend list
@@ -242,8 +248,6 @@ class _HomePageState extends State<HomePage> {
                   setState(() {}); // Trigger UI update
                 }
               },
-
-
 
               icon: const Icon(Icons.add, color: Colors.blue),
             )),
@@ -268,12 +272,14 @@ class _HomePageState extends State<HomePage> {
             },
             child: const Padding(
               padding: EdgeInsets.only(right: 16.0),
-              child: CircleAvatar(
-                backgroundImage: AssetImage('assets/images/profile_icon.png'),
-                radius: 18.0,
+              child: Icon(
+                Icons.menu,
+                key: Key('profilePageButton'),
+                size: 30.0,  // Adjust the size as per your design
               ),
             ),
-          ),
+          )
+
         ],
       ),
       body: Container(
@@ -405,11 +411,11 @@ class _HomePageState extends State<HomePage> {
         unselectedLabelStyle: const TextStyle(fontSize: 18),
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.event, size: 40),
+            icon: Icon(Icons.event, size: 40, key: Key('myEventsButton')),
             label: 'My Events',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.card_giftcard, size: 40),
+            icon: Icon(Icons.card_giftcard, size: 40, key: Key('myGiftsButton')),
             label: 'My Gifts',
           ),
         ],

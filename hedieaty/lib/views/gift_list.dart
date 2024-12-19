@@ -132,6 +132,7 @@ class _GiftListPageState extends State<GiftListPage> {
       ),
       floatingActionButton: _showAddGiftButton()
           ? FloatingActionButton.extended(
+        key: const Key('addGiftButton'),
         onPressed: () {
           Navigator.push(
             context,

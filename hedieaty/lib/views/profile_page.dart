@@ -50,6 +50,7 @@ class ProfilePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ListTile(
+              key: Key('updateProfileButton'),
               title: const Text('Update Personal Information'),
               trailing: const Icon(Icons.edit),
               onTap: () {
@@ -61,9 +62,10 @@ class ProfilePage extends StatelessWidget {
               },
             ),
             ListTile(
-              title: const Text('Notification'),
-              trailing: const Icon(Icons.notifications),
-              onTap: () {
+                key: Key('notificationsButton'),
+                title: const Text('Notification'),
+                trailing: const Icon(Icons.notifications),
+                onTap: () {
                 final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
                 Navigator.push(
                   context,
@@ -76,6 +78,7 @@ class ProfilePage extends StatelessWidget {
 
             // "My Created Events" option
             ListTile(
+              key: Key('createdEventsButton'),
               title: const Text('My Created Events'),
               trailing: const Icon(Icons.event),
               onTap: () async {
@@ -92,6 +95,7 @@ class ProfilePage extends StatelessWidget {
             ),
             // "My Pledged Gifts" option
             ListTile(
+              key: Key('pledgedGiftsButton'),
               title: const Text('My Pledged Gifts'),
               trailing: const Icon(Icons.card_giftcard),
               onTap: () async {
@@ -108,6 +112,7 @@ class ProfilePage extends StatelessWidget {
             ),
             const Divider(), // Divider to separate logout option
             ListTile(
+              key: Key('logOutButton'),
               title: const Text('Logout'),
               trailing: const Icon(Icons.exit_to_app),
               onTap: () => _logOut(context), // Call logout function
