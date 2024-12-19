@@ -80,6 +80,18 @@ class FirestoreService {
 
 
 
+  Future<void> addFriend(String userId1, String userId2) async {
+    // Create two entries to check friendship in both directions using FriendModel
+    final friendData1 = FriendModel(userId1: userId1, userId2: userId2);
+    final friendData2 = FriendModel(userId1: userId2, userId2: userId1);
+
+    try {
+      await FirebaseFirestore.instance.collection('friends').add(friendData1.toMap());
+      await FirebaseFirestore.instance.collection('friends').add(friendData2.toMap());
+    } catch (e) {
+      print("Error adding friends: $e");
+    }
+  }
 
   Future<bool> areUsersFriends(String userId1, String userId2) async {
     try {
@@ -111,18 +123,7 @@ class FirestoreService {
       return false;
     }
   }
-  Future<void> addFriend(String userId1, String userId2) async {
-    // Create two entries to check friendship in both directions using FriendModel
-    final friendData1 = FriendModel(userId1: userId1, userId2: userId2);
-    final friendData2 = FriendModel(userId1: userId2, userId2: userId1);
 
-    try {
-      await FirebaseFirestore.instance.collection('friends').add(friendData1.toMap());
-      await FirebaseFirestore.instance.collection('friends').add(friendData2.toMap());
-    } catch (e) {
-      print("Error adding friends: $e");
-    }
-  }
 
 
   // Save user data in Firestore with UID as document ID
@@ -285,6 +286,14 @@ class FirestoreService {
     await FirebaseFirestore.instance.collection('gifts').add(gift.toMap());
   }
 
+  Future<void> updateGift(String giftId, Map<String, dynamic> updatedData) async {
+    await FirebaseFirestore.instance.collection('gifts').doc(giftId).update(updatedData);
+  }
+
+  Future<void> deleteGift(String giftId) async {
+    await FirebaseFirestore.instance.collection('gifts').doc(giftId).delete();
+  }
+
   Stream<List<GiftModel>> streamGiftsForEvent(String? eventId) {
     return _firestore
         .collection('gifts')
@@ -313,15 +322,6 @@ class FirestoreService {
     return null;
   }
 
-
-  Future<void> updateGift(String giftId, Map<String, dynamic> updatedData) async {
-    await FirebaseFirestore.instance.collection('gifts').doc(giftId).update(updatedData);
-  }
-
-
-  Future<void> deleteGift(String giftId) async {
-    await FirebaseFirestore.instance.collection('gifts').doc(giftId).delete();
-  }
   Future<String> getUserNameById(String userId) async {
     final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
     return userDoc.data()?['name'] ?? 'Unknown User';
@@ -337,6 +337,18 @@ class FirestoreService {
       });
     } catch (e) {
       throw Exception('Error creating pledge: $e');
+    }
+  }
+
+  Future<void> deletePledge(String userId, String giftId) async {
+    final pledgeDocs = await FirebaseFirestore.instance
+        .collection('pledges')
+        .where('userId', isEqualTo: userId)
+        .where('giftId', isEqualTo: giftId)
+        .get();
+
+    for (final doc in pledgeDocs.docs) {
+      await doc.reference.delete();
     }
   }
 
@@ -356,18 +368,6 @@ class FirestoreService {
 
     return null; // No pledge found
   }
-  Future<void> deletePledge(String userId, String giftId) async {
-    final pledgeDocs = await FirebaseFirestore.instance
-        .collection('pledges')
-        .where('userId', isEqualTo: userId)
-        .where('giftId', isEqualTo: giftId)
-        .get();
-
-    for (final doc in pledgeDocs.docs) {
-      await doc.reference.delete();
-    }
-  }
-
 
   Future<void> updateGiftPurchaseStatus(String giftId, bool isPurchased) async {
     await _firestore.collection('gifts').doc(giftId).update({'isPurchased': isPurchased});
