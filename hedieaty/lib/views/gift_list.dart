@@ -279,17 +279,39 @@ class _GiftListPageState extends State<GiftListPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
             ),
           ),
-        if (gift.isPledged && !gift.isPurchased && !isCreator)
-          ElevatedButton(
-            onPressed: () => _updatePurchaseStatus(context, gift.id, true),
-            child: const Text('Purchase'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green[300],
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-            ),
+        if (gift.isPledged && !gift.isPurchased)
+        // If it's pledged but not purchased
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Pledged',
+                style: TextStyle(color: Colors.orange, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              if (!isCreator)
+                ElevatedButton(
+                  onPressed: () => _updatePurchaseStatus(context, gift.id, true),
+                  child: const Text('Purchase'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[300],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                  ),
+                ),
+            ],
+          ),
+        if (gift.isPledged && gift.isPurchased)
+        // If it's purchased
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Purchased',
+                style: TextStyle(color: Colors.green, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
         if (isCreator && !gift.isPledged && !gift.isPurchased)
           IconButton(
@@ -315,6 +337,7 @@ class _GiftListPageState extends State<GiftListPage> {
       ],
     );
   }
+
 
 
 

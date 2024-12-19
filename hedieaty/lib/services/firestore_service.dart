@@ -308,6 +308,20 @@ class FirestoreService {
   Future<void> updateGiftPledgeStatus(String giftId, bool isPledged) async {
     await _firestore.collection('gifts').doc(giftId).update({'isPledged': isPledged});
   }
+  Future<String?> getPledgeOwner(String giftId) async {
+    // Fetch the pledge document from Firestore
+    final pledgeSnapshot = await FirebaseFirestore.instance
+        .collection('pledges') // Assuming "pledges" is the correct collection
+        .doc(giftId)           // Using giftId as the document ID
+        .get();
+
+    if (pledgeSnapshot.exists) {
+      return pledgeSnapshot.data()?['userId'] as String?; // Return the 'userId' field
+    }
+
+    return null; // No pledge found
+  }
+
 
   Future<void> updateGiftPurchaseStatus(String giftId, bool isPurchased) async {
     await _firestore.collection('gifts').doc(giftId).update({'isPurchased': isPurchased});
