@@ -158,104 +158,184 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildUserCard(UserModel user) {
-    return FutureBuilder<QuerySnapshot>(
-      future: FirebaseFirestore.instance
-          .collection('friends')
-          .where('userId1', isEqualTo: _user!.uid)
-          .where('userId2', isEqualTo: user.uid)
-          .get(),
+    return FutureBuilder<Map<String, int>>(
+      future: _getUserEventAndGiftCounts(user.uid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final eventCount = snapshot.data?['eventCount'] ?? 0;
+        final giftCount = snapshot.data?['giftCount'] ?? 0;
+
         // Check if user is a friend
-        final isFriend = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+        return FutureBuilder<QuerySnapshot>(
+          future: FirebaseFirestore.instance
+              .collection('friends')
+              .where('userId1', isEqualTo: _user!.uid)
+              .where('userId2', isEqualTo: user.uid)
+              .get(),
+          builder: (context, friendSnapshot) {
+            if (friendSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        return Card(
-          elevation: 4.0,
-          margin: const EdgeInsets.symmetric(vertical: 8.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-          child: ListTile(
-            key: Key('userCard_${user.uid}'),
-            leading: const CircleAvatar(
-              backgroundColor: Colors.grey,
-              child: Icon(Icons.person, color: Colors.white),
-            ),
-            title: Text(
-              user.name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(user.email, overflow: TextOverflow.ellipsis),
-            trailing: _isViewingFriendsOnly // Show icons or add button based on the list
-                ? (isFriend
-                ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  key: Key('eventIcon_${user.uid}'),
-                  onPressed: () {
-                    // Navigate to the user's event list
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            EventListPage(userId: user.uid),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.event, color: Colors.blue),
+            final isFriend = friendSnapshot.hasData && friendSnapshot.data!.docs.isNotEmpty;
+
+            return Card(
+              elevation: 3.0, // Subtle shadow for depth
+              margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0), // Reduced margin
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0), // Slightly smaller border radius
+              ),
+              color: Colors.white, // White background for the card
+              shadowColor: Colors.black.withOpacity(0.1), // Softer shadow
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0), // Reduced padding
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16.0), // Rounded corners
+                  color: Colors.white, // White background
                 ),
-                IconButton(
-                  key: Key('giftIcon_${user.uid}'),
-                  onPressed: () {
-                    // Navigate to the user's gift list
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            GiftListPage(userId: user.uid),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero, // No extra padding inside ListTile
+                  key: Key('userCard_${user.uid}'),
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.grey[400],
+                    child: Icon(Icons.person, color: Colors.white),
+                  ),
+                  title: Text(
+                    user.name,
+                    style: const TextStyle(
+                      color: Colors.black, // Black text for readability
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.0, // Adjusted text size
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    user.email,
+                    style: const TextStyle(
+                      color: Colors.black54, // Lighter black for the subtitle
+                      fontSize: 14.0,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  trailing: _isViewingFriendsOnly // Show icons or add button based on the list
+                      ? (isFriend
+                      ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        key: Key('eventIcon_${user.uid}'),
+                        onPressed: () {
+                          // Navigate to the user's event list
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EventListPage(userId: user.uid),
+                            ),
+                          );
+                        },
+                        icon: Icon(Icons.event, color: Colors.purple, size: 25), // Purple icons
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.card_giftcard, color: Colors.blue),
+                      _buildCountBadge(eventCount), // Event count badge
+
+                      IconButton(
+                        key: Key('giftIcon_${user.uid}'),
+                        onPressed: () {
+                          // Navigate to the user's gift list
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GiftListPage(userId: user.uid),
+                            ),
+                          );
+                        },
+                        icon: Icon(Icons.card_giftcard, color: Colors.purple, size: 30), // Purple icons
+                      ),
+                      _buildCountBadge(giftCount), // Gift count badge
+                    ],
+                  )
+                      : SizedBox()) // No action for non-friends in Friends Only list
+                      : (isFriend
+                      ? Icon(Icons.check, color: Colors.green) // Tick icon for friends
+                      : IconButton(
+                    key: Key('addFriendButton_${user.uid}'),
+                    onPressed: () async {
+                      if (_user != null) {
+                        // Add friend to the user's friend list
+                        _addFriend(_user!.uid, user.uid);
+
+                        // Get current user's data from Firestore
+                        final currentUserData = await FirestoreService().getCurrentUserData();
+                        final String currentUserName = currentUserData['name'] ?? 'Someone';
+
+                        // Create a notification for the user
+                        await FirestoreService().createNotification(
+                          user.uid,
+                          '$currentUserName added you as a friend!',
+                        );
+
+                        setState(() {}); // Trigger UI update
+                      }
+                    },
+                    icon: const Icon(Icons.add, color: Colors.purple),
+                  )),
                 ),
-              ],
-            )
-                : SizedBox()) // No action for non-friends in Friends Only list
-                : (isFriend
-                ? Icon(Icons.check, color: Colors.green) // Tick icon for friends
-                : IconButton(
-              key: Key('addFriendButton_${user.uid}'),
-              onPressed: () async {
-                if (_user != null) {
-                  // Add friend to the user's friend list
-                  _addFriend(_user!.uid, user.uid);
-
-                  // Get current user's data from Firestore
-                  final currentUserData = await FirestoreService().getCurrentUserData();
-                  final String currentUserName = currentUserData['name'] ?? 'Someone';
-
-                  // Create a notification for the user
-                  await FirestoreService().createNotification(
-                    user.uid,
-                    '$currentUserName added you as a friend!',
-                  );
-
-                  setState(() {}); // Trigger UI update
-                }
-              },
-
-              icon: const Icon(Icons.add, color: Colors.blue),
-            )),
-          ),
+              ),
+            );
+          },
         );
       },
     );
   }
+
+// Function to get counts of events and gifts for a specific user
+  Future<Map<String, int>> _getUserEventAndGiftCounts(String userId) async {
+    final eventCountQuery = await FirebaseFirestore.instance
+        .collection('events')
+        .where('userId', isEqualTo: userId)
+        .get();
+
+    final giftCountQuery = await FirebaseFirestore.instance
+        .collection('gifts')
+        .where('userId', isEqualTo: userId)
+        .get();
+
+    return {
+      'eventCount': eventCountQuery.size, // Number of events
+      'giftCount': giftCountQuery.size,   // Number of gifts
+    };
+  }
+
+// Widget for the small count badge
+  Widget _buildCountBadge(int count) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4.0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 6.0),
+        decoration: BoxDecoration(
+          color: Colors.amber[300], // Amber color for the badge circle
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        child: Text(
+          '$count', // Display the count
+          style: const TextStyle(
+            color: Colors.black87, // Dark text color for readability
+            fontWeight: FontWeight.bold,
+            fontSize: 13, // Smaller size for the badge
+          ),
+        ),
+      ),
+    );
+  }
+
+
+
 
   @override
   Widget build(BuildContext context) {

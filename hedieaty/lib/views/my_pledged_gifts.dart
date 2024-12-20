@@ -102,9 +102,11 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
           gift.name,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 30,
+            fontSize: 16,  // Reduced font size for better wrapping
             color: Color.fromARGB(255, 58, 2, 80),
           ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 2, // Allow wrapping, but show only 2 lines for the name
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,9 +115,13 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
               children: [
                 Icon(Icons.description, color: Theme.of(context).primaryColor, size: 30),
                 const SizedBox(width: 10),
-                Text(
-                  gift.description,
-                  style: const TextStyle(color: Colors.black87, fontSize: 20),
+                Expanded( // Ensures description wraps properly within available space
+                  child: Text(
+                    gift.description,
+                    style: const TextStyle(color: Colors.black87, fontSize: 14), // Smaller font for better fit
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2, // Limit to 2 lines to avoid overflow
+                  ),
                 ),
               ],
             ),
@@ -126,7 +132,7 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
                 const SizedBox(width: 8),
                 Text(
                   '\$${gift.price}', // Display gift price
-                  style: const TextStyle(color: Colors.black87, fontSize: 20),
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
                 ),
               ],
             ),
@@ -140,7 +146,7 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
                 const SizedBox(width: 8),
                 Text(
                   gift.isPurchased ? 'Purchased' : 'Not Purchased',
-                  style: const TextStyle(color: Colors.black87, fontSize: 18),
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
                 ),
               ],
             ),
@@ -153,6 +159,7 @@ class _MyPledgedGiftsPageState extends State<MyPledgedGiftsPage> {
       ),
     );
   }
+
 
   Widget _buildActionButtons(BuildContext context, GiftModel gift) {
     return Row(
