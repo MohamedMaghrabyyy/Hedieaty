@@ -7,7 +7,7 @@ $TEST_PATH = "./test/integration_tests/full_test.dart"
 $DeviceId = "emulator-5554"
 
 # Start screen recording
-Start-Process -NoNewWindow -FilePath adb -ArgumentList "shell screenrecord $ON_DEVICE_OUTPUT_FILE" -PassThru
+Start-Process -NoNewWindow -FilePath adb -ArgumentList "shell screenrecord --bit-rate 6000000 $ON_DEVICE_OUTPUT_FILE" -PassThru
 
 # Run the Flutter drive test
 flutter drive --device-id=$DeviceId --driver=$DRIVER_PATH --target=$TEST_PATH
