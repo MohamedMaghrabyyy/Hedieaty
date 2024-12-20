@@ -17,7 +17,7 @@ void main() {
     // Wait for any animations or setup to complete
     await tester.pumpAndSettle();
 
-    // Step 1: Log in
+    // Log in
     final emailField = find.byKey(const Key('emailField'));
     final passwordField = find.byKey(const Key('passwordField'));
     final loginButton = find.byKey(const Key('loginButton'));
@@ -37,13 +37,13 @@ void main() {
     await tester.tap(loginButton);
     await tester.pumpAndSettle(const Duration(seconds: 5));
 
-    // Step 2: Open Events Page
+    // Open Events Page
     final eventsButton = find.byKey(const Key('myEventsButton'));
     expect(eventsButton, findsOneWidget);
     await tester.tap(eventsButton);
     await tester.pumpAndSettle();
 
-    // Step 3: Add Two Events
+    // Add Two Events
     final addEventButton = find.byKey(const Key('addEvent'));
     expect(addEventButton, findsOneWidget);
 
@@ -94,24 +94,24 @@ void main() {
     await tester.tap(eventSaveButton);
     await tester.pumpAndSettle(Duration(seconds: 1));  // Delay for event save process
 
-    // Step 4: Verify events are added dynamically
+    // Verify events are added dynamically
     final eventTile = find.byType(ListTile).first;  // Find the first ListTile, representing any event
     expect(eventTile, findsOneWidget);  // Ensure at least one event tile is found
 
-    // Step 5: Tap the gift icon of the first event
+    // Tap the gift icon of the first event
     final eventGiftIcon = find.byKey(const Key('event_gift_icon')).first;  // Find the first gift icon
     expect(eventGiftIcon, findsOneWidget);  // Ensure the gift icon exists
 
     await tester.tap(eventGiftIcon);  // Tap the gift icon to open the GiftListPage
     await tester.pumpAndSettle(Duration(seconds: 1));  // Wait for the navigation to complete
 
-    // Step 6: Add a gift for the first event
+    // Add a gift for the first event
     final addGiftButton = find.byKey(const Key('addGiftButton'));
     expect(addGiftButton, findsOneWidget);
     await tester.tap(addGiftButton);
     await tester.pumpAndSettle(Duration(seconds: 1));
 
-    // Step 7: Fill out gift details including Category
+    // Fill out gift details including Category
     final giftNameField = find.byKey(const Key('gift_name_field'));
     await tester.pumpAndSettle(Duration(seconds: 1));  // Delay for the text field update
     final giftDescriptionField = find.byKey(const Key('gift_description_field'));
@@ -137,23 +137,22 @@ void main() {
     await tester.pumpAndSettle(Duration(seconds: 1));
 
 
-
-    // Step 9: Go back to the events page using Navigator.pop()
+    // Go back to the events page using Navigator.pop()
     await tester.pageBack();
     await tester.pumpAndSettle(Duration(seconds: 1));
 
-// Step 10: Tap the gift icon of the second event (select the second event)
+    // Tap the gift icon of the second event (select the second event)
     final eventGiftIcon2 = find.byKey(const Key('event_gift_icon')).at(1);  // Find the second gift icon
     expect(eventGiftIcon2, findsOneWidget);  // Ensure the gift icon exists
 
     await tester.tap(eventGiftIcon2);  // Tap the gift icon of the second event to open the GiftListPage
     await tester.pumpAndSettle(Duration(seconds: 1));  // Wait for the navigation to complete
 
-// Step 11: Add a gift for the second event
+    // Add a gift for the second event
     await tester.tap(find.byKey(const Key('addGiftButton')));  // Open gift adding page for the second event
     await tester.pumpAndSettle(Duration(seconds: 1));
 
-// Step 12: Fill out gift details for the second event
+// Fill out gift details for the second event
     await tester.enterText(find.byKey(const Key('gift_name_field')), 'Wedding Ring');
     await tester.pumpAndSettle(Duration(seconds: 1));  // Delay for the text field update
 
@@ -169,7 +168,7 @@ void main() {
     await tester.tap(find.byKey(const Key('save_gift_button')));
     await tester.pumpAndSettle();
 
-    // Step 9: Go back to the events page using Navigator.pop()
+    // Go back to the events page using Navigator.pop()
     await tester.pageBack();
     await tester.pumpAndSettle(Duration(seconds: 1));
 
@@ -177,33 +176,33 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle(Duration(seconds: 1));
 
-    // Step 2: Open Events Page
+    // Open Events Page
     final giftsButton = find.byKey(const Key('myGiftsButton'));
     expect(eventsButton, findsOneWidget);
     await tester.tap(giftsButton);
     await tester.pumpAndSettle(Duration(seconds: 3));
 
-    // Step 9: Go back to the events page using Navigator.pop()
+    // Go back to the events page using Navigator.pop()
     await tester.pageBack();
     await tester.pumpAndSettle(Duration(seconds: 1));
 
-    // Step 1: Tap on the "View All Users" button
+    // Tap on the "View All Users" button
     final viewAllUsersButton = find.byKey(const Key('toggleViewButton'));
     expect(viewAllUsersButton, findsOneWidget);
     await tester.tap(viewAllUsersButton);
     await tester.pumpAndSettle(Duration(seconds: 3));
 
-    // Step 2: Wait for 3 seconds and tap the "View All Users" button again
+    // Wait for 3 seconds and tap the "View All Users" button again
     await tester.tap(viewAllUsersButton);
     await tester.pumpAndSettle(Duration(seconds: 3));
 
-    // Step 3: Tap on the hamburger menu (three bars)
+    // Tap on the hamburger menu (three bars)
     final hamburgerMenu = find.byKey(const Key('profilePageButton'));
     expect(hamburgerMenu, findsOneWidget);
     await tester.tap(hamburgerMenu);
     await tester.pumpAndSettle(Duration(seconds: 2));
 
-    // Step 4: Open "Update Profile Information" for 2 seconds
+    // Open "Update Profile Information" for 2 seconds
     final updateProfileButton = find.byKey(const Key('updateProfileButton'));
     expect(updateProfileButton, findsOneWidget);
     await tester.tap(updateProfileButton);
@@ -211,7 +210,7 @@ void main() {
     await tester.pageBack();  // Back out from profile update
     await tester.pumpAndSettle();  // Ensure UI settles after going back
 
-// Step 5: Open "Notifications" for 2 seconds
+// Open "Notifications" for 2 seconds
     final notificationsButton = find.byKey(const Key('notificationsButton'));
     expect(notificationsButton, findsOneWidget);
     await tester.tap(notificationsButton);
@@ -219,7 +218,7 @@ void main() {
     await tester.pageBack();  // Back out from notifications
     await tester.pumpAndSettle();  // Ensure UI settles after going back
 
-// Step 6: Open "My Created Events" for 2 seconds
+// Open "My Created Events" for 2 seconds
     final createdEventsButton = find.byKey(const Key('createdEventsButton'));
     expect(createdEventsButton, findsOneWidget);
     await tester.tap(createdEventsButton);
@@ -227,7 +226,7 @@ void main() {
     await tester.pageBack();  // Back out from created events
     await tester.pumpAndSettle();  // Ensure UI settles after going back
 
-// Step 7: Open "My Pledged Gifts" for 2 seconds
+// Open "My Pledged Gifts" for 2 seconds
     final pledgedGiftsButton = find.byKey(const Key('pledgedGiftsButton'));
     expect(pledgedGiftsButton, findsOneWidget);
     await tester.tap(pledgedGiftsButton);
@@ -235,7 +234,7 @@ void main() {
     await tester.pageBack();  // Back out from pledged gifts
     await tester.pumpAndSettle();  // Ensure UI settles after going back
 
-// Step 8: Log out
+// Log out
     final logOutButton = find.byKey(const Key('logOutButton'));
     expect(logOutButton, findsOneWidget);
     await tester.tap(logOutButton);
