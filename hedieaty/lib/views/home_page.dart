@@ -158,19 +158,42 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildUserCard(UserModel user) {
-    return FutureBuilder<QuerySnapshot>(
-      future: FirebaseFirestore.instance
-          .collection('friends')
-          .where('userId1', isEqualTo: _user!.uid)
-          .where('userId2', isEqualTo: user.uid)
-          .get(),
-      builder: (context, snapshot) {
+    Future<int> _fetchEventCount(String userId) async {
+      final eventDocs = await FirebaseFirestore.instance
+          .collection('events')
+          .where('userId', isEqualTo: userId)
+          .get();
+      return eventDocs.docs.length;
+    }
+
+    Future<int> _fetchGiftCount(String userId) async {
+      final giftDocs = await FirebaseFirestore.instance
+          .collection('gifts')
+          .where('userId', isEqualTo: userId)
+          .get();
+      return giftDocs.docs.length;
+    }
+
+    return FutureBuilder(
+      future: Future.wait([
+        FirebaseFirestore.instance
+            .collection('friends')
+            .where('userId1', isEqualTo: _user!.uid)
+            .where('userId2', isEqualTo: user.uid)
+            .get(),
+        _fetchEventCount(user.uid),
+        _fetchGiftCount(user.uid),
+      ]),
+      builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Check if user is a friend
-        final isFriend = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+        // Data retrieval
+        final isFriend =
+            snapshot.data != null && (snapshot.data![0] as QuerySnapshot).docs.isNotEmpty;
+        final eventCount = snapshot.data != null ? snapshot.data![1] as int : 0;
+        final giftCount = snapshot.data != null ? snapshot.data![2] as int : 0;
 
         return Card(
           elevation: 4.0,
@@ -190,72 +213,89 @@ class _HomePageState extends State<HomePage> {
               overflow: TextOverflow.ellipsis,
             ),
             subtitle: Text(user.email, overflow: TextOverflow.ellipsis),
-            trailing: _isViewingFriendsOnly // Show icons or add button based on the list
-                ? (isFriend
-                ? Row(
+            trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  key: Key('eventIcon_${user.uid}'),
+                // Events Icon and Count with Badge Style
+                _buildIconWithCount(
+                  icon: Icons.event,
+                  count: eventCount,
                   onPressed: () {
-                    // Navigate to the user's event list
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            EventListPage(userId: user.uid),
+                        builder: (context) => EventListPage(userId: user.uid),
                       ),
                     );
                   },
-                  icon: const Icon(Icons.event, color: Colors.blue),
                 ),
-                IconButton(
-                  key: Key('giftIcon_${user.uid}'),
+                const SizedBox(width: 16),
+                // Gifts Icon and Count with Badge Style
+                _buildIconWithCount(
+                  icon: Icons.card_giftcard,
+                  count: giftCount,
                   onPressed: () {
-                    // Navigate to the user's gift list
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            GiftListPage(userId: user.uid),
+                        builder: (context) => GiftListPage(userId: user.uid),
                       ),
                     );
                   },
-                  icon: const Icon(Icons.card_giftcard, color: Colors.blue),
                 ),
               ],
-            )
-                : SizedBox()) // No action for non-friends in Friends Only list
-                : (isFriend
-                ? Icon(Icons.check, color: Colors.green) // Tick icon for friends
-                : IconButton(
-              key: Key('addFriendButton_${user.uid}'),
-              onPressed: () async {
-                if (_user != null) {
-                  // Add friend to the user's friend list
-                  _addFriend(_user!.uid, user.uid);
-
-                  // Get current user's data from Firestore
-                  final currentUserData = await FirestoreService().getCurrentUserData();
-                  final String currentUserName = currentUserData['name'] ?? 'Someone';
-
-                  // Create a notification for the user
-                  await FirestoreService().createNotification(
-                    user.uid,
-                    '$currentUserName added you as a friend!',
-                  );
-
-                  setState(() {}); // Trigger UI update
-                }
-              },
-
-              icon: const Icon(Icons.add, color: Colors.blue),
-            )),
+            ),
           ),
         );
       },
     );
   }
+
+  Widget _buildIconWithCount({required IconData icon, required int count, required VoidCallback onPressed}) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+        decoration: BoxDecoration(
+          color: const Color(0xFF543CA6),
+          borderRadius: BorderRadius.circular(16.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4.0,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white70, size: 20), // Softer white color for the icon
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 2.0, horizontal: 6.0),
+              decoration: BoxDecoration(
+                color: Colors.amber[100], // A lighter, more subdued amber for the badge
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Text(
+                '$count',
+                style: const TextStyle(
+                  color: Colors.black87, // Darker text color for better readability
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14, // Slightly smaller font size
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
