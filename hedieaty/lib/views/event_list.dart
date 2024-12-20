@@ -20,7 +20,7 @@ class EventListPage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 58, 2, 80),
         iconTheme: const IconThemeData(color: Colors.white),
-        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 25),
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20),
         title: FutureBuilder<String>(
           future: _fetchUserName(userId),
           builder: (context, snapshot) {

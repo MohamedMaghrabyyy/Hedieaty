@@ -28,7 +28,7 @@ void main() {
     expect(loginButton, findsOneWidget);
 
     // Enter the credentials
-    await tester.enterText(emailField, 'yuji@mail.com');
+    await tester.enterText(emailField, 'mohamed_elmaghrabyyy@mail.com');
     await tester.pump(const Duration(seconds: 1)); // Wait for the field to update
     await tester.enterText(passwordField, 'test1234');
     await tester.pump(const Duration(seconds: 1)); // Wait for the field to update

@@ -85,7 +85,7 @@ class _GiftListPageState extends State<GiftListPage> {
         title: Text(_getAppBarTitle()),
         backgroundColor: const Color.fromARGB(255, 58, 2, 80),
         iconTheme: const IconThemeData(color: Colors.white),
-        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 25),
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20),
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -200,9 +200,12 @@ class _GiftListPageState extends State<GiftListPage> {
               children: [
                 Icon(Icons.description, color: Theme.of(context).primaryColor, size: 30),
                 const SizedBox(width: 10),
-                Text(
-                  gift.description,
-                  style: const TextStyle(color: Colors.black87, fontSize: 20),
+                Expanded( // Ensures the text wraps around
+                  child: Text(
+                    gift.description,
+                    softWrap: true,
+                    style: const TextStyle(color: Colors.black87, fontSize: 20),
+                  ),
                 ),
               ],
             ),
@@ -219,6 +222,7 @@ class _GiftListPageState extends State<GiftListPage> {
             ),
           ],
         ),
+
         trailing: _buildActionButtons(context, gift),
         isThreeLine: true,
         dense: false,

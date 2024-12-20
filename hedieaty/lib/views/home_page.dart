@@ -303,7 +303,7 @@ class _HomePageState extends State<HomePage> {
               child: Text(
                 'Welcome, ${_userName.isNotEmpty ? _userName : 'User'}!',
                 style: const TextStyle(
-                  fontSize: 27,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
